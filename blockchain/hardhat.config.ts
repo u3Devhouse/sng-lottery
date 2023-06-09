@@ -12,16 +12,7 @@ const config: HardhatUserConfig = {
       }
     }
   },
-  networks:{
-    hardhat: {
-      forking: {
-        url: "https://eth.public-rpc.com",
-        blockNumber: 17353000
-      }
-    }
-  },
   gasReporter:{
-    enabled: true,
     currency: "USD",
     token: "ETH"
   }
