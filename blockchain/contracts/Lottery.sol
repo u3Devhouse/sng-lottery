@@ -1,54 +1,181 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.20;
 
+/**
+ * @title   BlazeLottery
+ * @author  SemiInvader
+ * @notice  This contract is a lottery contract that will be used to distribute BLZ tokens to users
+ *          The lottery will be a 5/63 lottery, where users will buy tickets with 5 numbers each spanning 8 bits in length
+ *          The lottery will be run on a weekly basis, with the lottery ending on a specific time and date
+ * @dev IMPORTANT DEPENDENCIES:
+ *      - Chainlink VRF ConsumerBase -> Request randomness for winner number
+ *      - Chainlink VRF Coordinator (Interface only) -> receive randomness from this one
+ *      - Chainlink Keepers Implementation -> Once winner is received, check all tickets for matches and return count of matches back to contract to save that particular data
+ *      - Chainlink Keeper Implementation 2 -> request randomness for next round
+ */
+
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "@chainlink/contracts/src/v0.8/AutomationCompatible.sol";
+import "@chainlink/contracts/src/v0.8/VRFConsumerBaseV2.sol";
+import "@chainlink/contracts/src/v0.8/interfaces/VRFCoordinatorV2Interface.sol";
+// TODO REMOVE THIS AFTER DEBUGGING AND TESTING
+import "hardhat/console.sol";
 
-error RoundInactive(uint256);
+//-------------------------------------------------------------------------
+//    INTERFACES
+//-------------------------------------------------------------------------
+interface IERC20Burnable is IERC20 {
+    function burn(uint256 amount) external;
 
-contract BlazeLottery is Ownable {
+    function burnFrom(address account, uint256 amount) external;
+}
+//-------------------------------------------------------------------------
+//    ERRORS
+//-------------------------------------------------------------------------
+error BlazeLot__RoundInactive(uint256);
+error BlazeLot__InsufficientTickets();
+error BlazeLot__InvalidMatchers();
+error BlazeLot__InvalidMatchRound();
+error BlazeLot__InvalidUpkeeper();
+error BlazeLot__RoundNotEnded();
+error BlazeLot__InvalidRound();
+
+contract BlazeLottery is
+    Ownable,
+    ReentrancyGuard,
+    AutomationCompatible,
+    VRFConsumerBaseV2
+{
+    //-------------------------------------------------------------------------
+    //    TYPE DECLARATIONS
+    //-------------------------------------------------------------------------
     struct RoundInfo {
+        uint256 pot;
         uint256 ticketsBought;
         uint256 price;
         uint256 endRound; // Timestamp OR block number when round ends
-        uint8[5] winnerNumbers;
+        uint randomnessRequestID;
         bool active;
     }
-
     struct UserTickets {
         uint64[] tickets;
         bool[] claimed;
     }
-
+    struct Matches {
+        uint256 match1;
+        uint256 match2;
+        uint256 match3;
+        uint256 match4;
+        uint256 match5;
+        uint256 roundId;
+        uint64 winnerNumber; // We'll need to process this so it matches the same format as the tickets
+        bool completed;
+    }
+    //-------------------------------------------------------------------------
+    //    State Variables
+    //-------------------------------------------------------------------------
+    mapping(address => bool) public upkeeper;
+    mapping(uint randomnessRequestID => Matches) public matches;
     mapping(uint _roundId => RoundInfo) public roundInfo;
+    mapping(uint _roundId => address[] participatingUsers) private roundUsers;
     mapping(address _user => mapping(uint _round => UserTickets _all))
         private userTickets;
+
+    uint[7] public distributionPercentages;
+    // [match1, match2, match3, match4, match5, burn, team]
+    // 25% Match 5
+    // 25% Match 4
+    // 25% Match 3
+    // 0% Match 2
+    // 0% Match 1
+    // 20% Burns
+    // 5%  Team
+    //-------------------------------------------------------------------------
+    //    VRF Config Variables
+    //-------------------------------------------------------------------------
+    address public immutable vrfCoordinator;
+    bytes32 public immutable keyHash;
+    uint64 private immutable subscriptionId;
+    uint16 private constant minimumRequestConfirmations = 4;
+    uint32 private callbackGasLimit = 100000;
+
+    address public teamWallet;
+
+    IERC20Burnable public currency;
     uint256 public currentRound;
-    IERC20 public currency;
+    uint256 public roundDuration;
+    uint64 public constant BIT_8_MASK = 0x00000000000000FF;
+    uint64 public constant BIT_6_MASK = 0x000000000000003F;
+    uint8 public constant BIT_1_MASK = 0x01;
     bool public roundIsActive;
 
+    //-------------------------------------------------------------------------
+    //    Events
+    //-------------------------------------------------------------------------
+    event AddToPot(address indexed user, uint256 indexed round, uint256 amount);
     event BoughtTickets(address indexed user, uint _round, uint amount);
     event EditRoundPrice(uint _round, uint _newPrice);
+    event StartRound(uint indexed _round);
+    event UpkeeperSet(address indexed upkeeper, bool isUpkeeper);
 
-    constructor(address _tokenAccepted) {
+    //-------------------------------------------------------------------------
+    //    Constructor
+    //-------------------------------------------------------------------------
+    constructor(
+        address _tokenAccepted,
+        address _vrfCoordinator,
+        bytes32 _keyHash,
+        uint64 _subscriptionId,
+        address _team
+    ) VRFConsumerBaseV2(_vrfCoordinator) {
         // _tokenAccepted is BLZ token
-        currency = IERC20(_tokenAccepted);
-        //stuff
+        currency = IERC20Burnable(_tokenAccepted);
+
+        roundDuration = 1 weeks;
+        vrfCoordinator = _vrfCoordinator;
+        keyHash = _keyHash;
+        subscriptionId = _subscriptionId;
+
+        distributionPercentages = [0, 0, 25, 25, 25, 20, 5];
+        teamWallet = _team;
     }
 
-    function buyTickets(uint64[] calldata tickets) external {
-        if (!roundInfo[currentRound].active) revert RoundInactive(currentRound);
+    //-------------------------------------------------------------------------
+    //    EXTERNAL Functions
+    //-------------------------------------------------------------------------
+
+    /**
+     *
+     * @param tickets Array of tickets to buy. The tickets need to have 5 numbers each spanning 8 bits in length
+     * @dev each number will be constrained to 6 bit numbers e.g. 0 - 63
+     * @dev since each number is 6 bits in length but stored on an 8 bit space, we'll be using uint64 to store the numbers
+     *      E.G.
+     *      Storing the ticket with numbers 35, 12, 0, 63, 1
+     *      each number in 8 bit hex becomes 0x23, 0x0C, 0x00, 0x3F, 0x01
+     *      number to store = 0x000000230C003F01
+     *      Although we will not check for this, the numbers will be be checked using bit shifting with a mask so any larger numbers will be ignored
+     * @dev gas cost is reduced ludicrously, however we will be relying heavily on chainlink keepers to check for winners and get the match amount data
+     */
+    function buyTickets(uint64[] calldata tickets) external nonReentrant {
+        RoundInfo storage playingRound = roundInfo[currentRound];
+        if (!playingRound.active) revert BlazeLot__RoundInactive(currentRound);
         // Check ticket array
         uint256 ticketAmount = tickets.length;
-        require(ticketAmount > 0, "InsufficientTickets");
+        if (ticketAmount == 0) {
+            revert BlazeLot__InsufficientTickets();
+        }
         // Get payment from ticket price
-        uint256 price = roundInfo[currentRound].price * ticketAmount;
-        if (price > 0) currency.transferFrom(msg.sender, address(this), price);
-        // Price Distribution
-        // @audit-issue TODO Confirm with client what the token distribution will be
-        // @audit-issue TODO Confirm duration of lottery rounds
+        uint256 price = playingRound.price * ticketAmount;
+        if (price > 0) addToPot(price, currentRound);
+
+        playingRound.ticketsBought += ticketAmount;
         // Save Ticket to current Round
         UserTickets storage user = userTickets[msg.sender][currentRound];
+        // Add user to the list of users to check for winners
+        if (user.tickets.length == 0) roundUsers[currentRound].push(msg.sender);
+
         for (uint i = 0; i < ticketAmount; i++) {
             user.tickets.push(tickets[i]);
             user.claimed.push(false);
@@ -59,8 +186,263 @@ contract BlazeLottery is Ownable {
     function claimTickets(
         uint _round,
         uint[] calldata _userTicketIndexes,
-        uint8[] calldata matches
-    ) external {}
+        uint8[] calldata _matches
+    ) external nonReentrant {}
+
+    /**
+     *
+     * @param _rounds array of all rounds that will be claimed
+     * @param _ticketsPerRound number of tickets that will be claimed in this call
+     * @param _ticketIndexes array of ticket indexes to be claimed, the length of this array should be equal to the sum of _ticketsPerRound
+     * @param _matches array to matches per ticket, the length of this array should be equal to the sum of _ticketsPerRound
+     */
+    function claimMultipleRounds(
+        uint[] calldata _rounds,
+        uint[] calldata _ticketsPerRound,
+        uint[] calldata _ticketIndexes,
+        uint8[] calldata _matches
+    ) external nonReentrant {}
+
+    /**
+     * @notice Edit the price for an upcoming round
+     * @param _newPrice Price for the next upcoming round
+     * @param _roundId ID of the upcoming round to edit
+     * @dev If this is not called, on round end, the price will be the same as the previous round
+     */
+    function setPrice(uint256 _newPrice, uint256 _roundId) external onlyOwner {
+        require(_roundId > currentRound, "Invalid ID");
+        roundInfo[_roundId].price = _newPrice;
+        emit EditRoundPrice(_roundId, _newPrice);
+    }
+
+    /**
+     *
+     * @param initPrice Price for the first round
+     * @param firstRoundEnd the Time when the first round ends
+     * @dev This function can only be called once by owner and sets the initial price
+     */
+    function activateLottery(
+        uint initPrice,
+        uint firstRoundEnd
+    ) external onlyOwner {
+        require(currentRound == 0, "Lottery started");
+        currentRound++;
+        RoundInfo storage startRound = roundInfo[1];
+        startRound.price = initPrice;
+        startRound.active = true;
+        startRound.endRound = firstRoundEnd;
+        emit StartRound(1);
+    }
+
+    /**
+     * @param _upkeeper Address of the upkeeper
+     * @param _status Status of the upkeeper
+     * @dev enable or disable an address that can call performUpkeep
+     */
+    function setUpkeeper(address _upkeeper, bool _status) external onlyOwner {
+        upkeeper[_upkeeper] = _status;
+        emit UpkeeperSet(_upkeeper, _status);
+    }
+
+    /**
+     *
+     * @param performData Data to perform upkeep
+     * @dev performData is abi encoded as (bool, uint256[])
+     *      - bool is if it's a round end request upkeep or winner array request upkeep
+     *      - uint256[] is the array of winners that match the criteria
+     */
+    function performUpkeep(bytes calldata performData) external {
+        //Only upkeepers can do this
+        if (!upkeeper[msg.sender]) revert BlazeLot__InvalidUpkeeper();
+
+        (bool isRandomRequest, uint256[] memory matchers) = abi.decode(
+            performData,
+            (bool, uint256[])
+        );
+        RoundInfo storage playingRound = roundInfo[currentRound];
+        if (isRandomRequest) {
+            endRound();
+        } else {
+            if (matchers.length != 5 || playingRound.active)
+                revert BlazeLot__InvalidMatchers();
+            Matches storage currentMatches = matches[
+                playingRound.randomnessRequestID
+            ];
+            if (currentMatches.winnerNumber == 0 || currentMatches.completed)
+                revert BlazeLot__InvalidMatchRound();
+            currentMatches.match1 = matchers[0];
+            currentMatches.match2 = matchers[1];
+            currentMatches.match3 = matchers[2];
+            currentMatches.match4 = matchers[3];
+            currentMatches.match5 = matchers[4];
+            currentMatches.completed = true;
+            currentRound++;
+            roundInfo[currentRound].active = true;
+            roundInfo[currentRound].endRound =
+                playingRound.endRound +
+                roundDuration;
+            if (roundInfo[currentRound].price == 0)
+                roundInfo[currentRound].price = playingRound.price;
+        }
+    }
+
+    //-------------------------------------------------------------------------
+    //    PUBLIC FUNCTIONS
+    //-------------------------------------------------------------------------
+    /**
+     * @notice Add Blaze to the POT of the selected round
+     * @param amount Amount of Blaze to add to the pot
+     * @param round Round to add the Blaze to
+     */
+    function addToPot(uint amount, uint round) public {
+        if (round < currentRound) revert BlazeLot__InvalidRound();
+        currency.transferFrom(msg.sender, address(this), amount);
+        roundInfo[round].pot += amount;
+        emit AddToPot(msg.sender, amount, round);
+    }
+
+    /**
+     * @notice End the current round
+     * @dev this function can be called by anyone as long as the conditions to end the round are met
+     */
+    function endRound() public {
+        RoundInfo storage playingRound = roundInfo[currentRound];
+        // Check that endRound of current Round is passed
+        if (
+            block.timestamp > playingRound.endRound &&
+            playingRound.active &&
+            playingRound.randomnessRequestID == 0
+        ) {
+            playingRound.active = false;
+            uint requestId = VRFCoordinatorV2Interface(vrfCoordinator)
+                .requestRandomWords(
+                    keyHash,
+                    subscriptionId,
+                    minimumRequestConfirmations,
+                    callbackGasLimit,
+                    1
+                );
+            playingRound.randomnessRequestID = requestId;
+            matches[requestId].roundId = currentRound;
+        } else revert BlazeLot__RoundNotEnded();
+    }
+
+    //-------------------------------------------------------------------------
+    //    INTERNAL FUNCTIONS
+    //-------------------------------------------------------------------------
+    function fulfillRandomWords(
+        uint requestId,
+        uint256[] memory randomWords
+    ) internal override {
+        uint64 winnerNumber = uint64(randomWords[0]);
+        for (uint8 i = 0; i < 5; i++) {
+            // pass a 6 bit mask to get the last 6 bits of each number
+            winnerNumber = winnerNumber & (BIT_6_MASK << (8 * i));
+        }
+        matches[requestId].winnerNumber = winnerNumber;
+    }
+
+    //-------------------------------------------------------------------------
+    //    PRIVATE FUNCTIONS
+    //-------------------------------------------------------------------------
+    //-------------------------------------------------------------------------
+    //    INTERNAL & PRIVATE VIEW & PURE FUNCTIONS
+    //-------------------------------------------------------------------------
+    /**
+     *
+     * @param winnerNumber Base Number to check against
+     * @param ticketNumber Number to check against the base number
+     * @return matchAmount Number of matches between the two numbers
+     */
+    function _compareTickets(
+        uint64 winnerNumber,
+        uint64 ticketNumber
+    ) private pure returns (uint8 matchAmount) {
+        uint64 winnerMask;
+        uint64 ticketMask;
+        uint8 matchesChecked = 0x00;
+
+        // cycle through all 5 numbers on winnerNumber
+        for (uint8 i = 0; i < 5; i++) {
+            winnerMask = (winnerNumber >> (8 * i)) & BIT_6_MASK;
+            // cycle through all 5 numbers on ticketNumber
+            for (uint8 j = 0; j < 5; j++) {
+                // check if this ticket Mask has already been matched
+                uint8 maskCheck = BIT_1_MASK << j;
+                if (matchesChecked & maskCheck == maskCheck) {
+                    continue;
+                }
+                ticketMask = (ticketNumber >> (8 * j)) & BIT_8_MASK;
+                // If number is larger than 6 bits, ignore
+                if (ticketMask > BIT_6_MASK) {
+                    matchesChecked = matchesChecked | maskCheck;
+                    continue;
+                }
+
+                if (winnerMask == ticketMask) {
+                    matchAmount++;
+                    matchesChecked = matchesChecked | maskCheck;
+                    break;
+                }
+            }
+        }
+    }
+
+    //-------------------------------------------------------------------------
+    //    EXTERNAL AND PUBLIC VIEW & PURE FUNCTIONS
+    //-------------------------------------------------------------------------
+    /**
+     * @notice Check if upkeep is needed
+     * @param checkData Data to check for upkeep
+     * @return upkeepNeeded Whether upkeep is needed
+     * @return performData Data to perform upkeep
+     *          - We use two types of upkeeps here. 1 Time , 2 Custom logic
+     *          - 1. Time based upkeep is used to end the round and request for randomness
+     *          - 2. Custom logic is used to check for winners
+     *          - performData has 2 values, endRoundRequest (bool) and matching numbers (uint[])
+     *           if endRoundRequest is true, then we will end the round and request for randomness
+     *          if matching numbers is not empty, then we will check for winners
+     *          after winners are selected we increase the round number and activate it
+     */
+    function checkUpkeep(
+        bytes calldata checkData
+    ) external view returns (bool upkeepNeeded, bytes memory performData) {
+        checkData; // Dummy to remove unused var warning
+        // Is this a endRound request or a checkWinner request?
+        RoundInfo storage playingRound = roundInfo[currentRound];
+        uint[] memory matchingNumbers = new uint[](5);
+        performData = bytes("");
+        if (playingRound.active) {
+            upkeepNeeded = playingRound.endRound < block.timestamp;
+            performData = abi.encode(true, matchingNumbers);
+        } else if (
+            playingRound.randomnessRequestID > 0 &&
+            !matches[playingRound.randomnessRequestID].completed &&
+            matches[playingRound.randomnessRequestID].winnerNumber > 0
+        ) {
+            upkeepNeeded = true;
+            address[] storage participants = roundUsers[currentRound];
+            uint participantsLength = participants.length;
+            uint64 winnerNumber = matches[playingRound.randomnessRequestID]
+                .winnerNumber;
+            for (uint i = 0; i < participantsLength; i++) {
+                UserTickets storage user = userTickets[participants[i]][
+                    currentRound
+                ];
+                uint ticketsLength = user.tickets.length;
+                for (uint j = 0; j < ticketsLength; j++) {
+                    uint8 matchAmount = _compareTickets(
+                        winnerNumber,
+                        user.tickets[j]
+                    );
+                    if (matchAmount > 0) {
+                        matchingNumbers[matchAmount - 1]++;
+                    }
+                }
+            }
+            performData = abi.encode(false, matchingNumbers);
+        } else upkeepNeeded = false;
+    }
 
     function checkTicket(
         uint round,
@@ -71,8 +453,6 @@ contract BlazeLottery is Ownable {
         uint round,
         uint[] calldata _userTicketIndexes
     ) external view returns (uint) {}
-
-    function endRound() external {}
 
     function getUserTickets(
         address _user,
@@ -96,24 +476,10 @@ contract BlazeLottery is Ownable {
         }
     }
 
-    function setPrice(uint256 _newPrice, uint256 _roundId) external onlyOwner {
-        require(_roundId > currentRound, "Invalid ID");
-        roundInfo[_roundId].price = _newPrice;
-        emit EditRoundPrice(_roundId, _newPrice);
+    function checkTicketMatching(
+        uint64 ticket1,
+        uint64 ticket2
+    ) external pure returns (uint8) {
+        return _compareTickets(ticket1, ticket2);
     }
-
-    function activateLottery(uint initPrice) external onlyOwner {
-        require(currentRound == 0, "Lottery started");
-        currentRound++;
-        RoundInfo storage startRound = roundInfo[1];
-        startRound.price = initPrice;
-        startRound.active = true;
-        // TODO please CHECK the DURATION of each lottery round;
-        startRound.endRound = block.timestamp + 12 hours;
-    }
-
-    // function checkRoundPrice(uint256 _roundId) external view returns (uint256) {
-    //     require(_roundId >= 0, "Invalid Round ID");
-    //     return roundInfo[_roundId].price;
-    // }
 }
