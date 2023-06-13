@@ -9,22 +9,27 @@ import { parseEther } from "ethers/lib/utils";
 describe("Lottery", function () {
 
   async function setup(){
-    const [owner, user1, user2, user3, user4, user5] = await ethers.getSigners();
+    const [owner, user1, user2, user3, user4, user5, team] = await ethers.getSigners();
     const LotteryFactory = await ethers.getContractFactory("BlazeLottery", owner);
     const MockTokenFactory = await ethers.getContractFactory("MockToken", owner);
+    const MockVRFFactory = await ethers.getContractFactory("VRFCoordinatorV2Mock", owner);
+    const vrf = await MockVRFFactory.deploy(parseEther("0.1"),1000000000);
+    await vrf.createSubscription()
+    await vrf.fundSubscription(1, parseEther("10"))
     const mockToken = await MockTokenFactory.deploy();
-    const lottery = await LotteryFactory.deploy(mockToken.address);
+    const lottery = await LotteryFactory.deploy(mockToken.address, vrf.address, "0xd89b2bf150e3b9e13446986e571fb9cab24b13cea0a43ea20a6049a85cc807cc", 1, team.address);
     await mockToken.transfer(user1.address, ethers.utils.parseEther("1000"))
     await mockToken.transfer(user2.address, ethers.utils.parseEther("1000"))
     await mockToken.transfer(user3.address, ethers.utils.parseEther("1000"))
     await mockToken.transfer(user4.address, ethers.utils.parseEther("1000"))
-    return {lottery, owner, user1, user2, user3, user4, user5, mockToken}
+    await mockToken.transfer(user5.address, ethers.utils.parseEther("1000"))
+    return {lottery, owner, user1, user2, user3, user4, user5, mockToken, team, vrf}
   }
 
   async function setupStarted () {
     const init = await setup()
     const {lottery, owner, user1, user2, user3, user4, user5, mockToken} = init
-    await lottery.activateLottery(parseEther("10"))
+    await lottery.activateLottery(parseEther("10"), await time.latest() + 3600)
     await mockToken.connect(user1).approve(lottery.address, parseEther("1000"))
     await mockToken.connect(user2).approve(lottery.address, parseEther("1000"))
     await mockToken.connect(user3).approve(lottery.address, parseEther("1000"))
@@ -58,14 +63,19 @@ describe("Lottery", function () {
 
       ticketToBuy = convertToHex([10,20,30,40,60])
       expect(await lottery.checkTicketMatching(ticketToBuy, ticketWinner)).to.equal(4)
-      expect(await lottery.checkTicketMatching(ticketWinner, ticketToBuy)).to.equal(4)
+      // Repeating numbers
+      ticketToBuy = convertToHex([10,10,30,40,10])
+      // If winner was repeated digits only count 1
+      expect(await lottery.checkTicketMatching(ticketToBuy, ticketWinner)).to.equal(3)
+      // If ticket has repeated numbers, it works as expected
+      expect(await lottery.checkTicketMatching(ticketWinner, ticketToBuy)).to.equal(3)
       
       ticketToBuy = convertToHex([88,1,0,3,0])
       expect(await lottery.checkTicketMatching(ticketWinner, ticketToBuy)).to.equal(0)
 
       // TODO THIS PARTICULAR CASE IS STILL PENDING
       ticketToBuy = convertToHex([1,40,63, 74, 148 ])
-      expect(await lottery.checkTicketMatching(ticketWinner, ticketToBuy)).to.equal(3)
+      expect(await lottery.checkTicketMatching(ticketWinner, ticketToBuy)).to.equal(1)
     })
   })
 
@@ -73,12 +83,12 @@ describe("Lottery", function () {
     it("Should not allow to buy tickets until the round is started", async ()=>{
       const { lottery, user1 } = await loadFixture(setup);
       const ticketToBuy = convertToHex([10,20,30,40,50])
-      await expect(lottery.connect(user1).buyTickets(new Array(10).fill(ticketToBuy))).to.be.revertedWithCustomError(lottery,"RoundInactive").withArgs(0)
+      await expect(lottery.connect(user1).buyTickets(new Array(10).fill(ticketToBuy))).to.be.revertedWithCustomError(lottery,"BlazeLot__RoundInactive").withArgs(0)
     })
     it("Should not allow to buy tickets until the round is started NOT EVEN OWNER", async ()=>{
       const { lottery, owner } = await loadFixture(setup);
       const ticketToBuy = convertToHex([10,20,30,40,50])
-      await expect(lottery.connect(owner).buyTickets(new Array(10).fill(ticketToBuy))).to.be.revertedWithCustomError(lottery,"RoundInactive").withArgs(0)
+      await expect(lottery.connect(owner).buyTickets(new Array(10).fill(ticketToBuy))).to.be.revertedWithCustomError(lottery,"BlazeLot__RoundInactive").withArgs(0)
     })
     it("should buy tickets", async function (){
       const { lottery, owner, user1, user2, user3, user4, user5} = await loadFixture(setupStarted);
@@ -90,8 +100,19 @@ describe("Lottery", function () {
       await lottery.connect(user4).buyTickets(new Array(40).fill(ticketToBuy))
       await lottery.connect(user5).buyTickets(new Array(60).fill(ticketToBuy))
 
-      const user1Tickets = await lottery.getUserTickets(user1.address, 0)
+      let user1Tickets = await lottery.getUserTickets(user1.address, 0)
+      expect(user1Tickets[2]).to.equal(0)
+      
+      user1Tickets = await lottery.getUserTickets(user1.address, 1)
       expect(user1Tickets[2]).to.equal(10)
+      user1Tickets = await lottery.getUserTickets(user2.address, 1)
+      expect(user1Tickets[2]).to.equal(100)
+      user1Tickets = await lottery.getUserTickets(user3.address, 1)
+      expect(user1Tickets[2]).to.equal(20)
+      user1Tickets = await lottery.getUserTickets(user4.address, 1)
+      expect(user1Tickets[2]).to.equal(40)
+      user1Tickets = await lottery.getUserTickets(user5.address, 1)
+      expect(user1Tickets[2]).to.equal(60)
     })
   })
 })
