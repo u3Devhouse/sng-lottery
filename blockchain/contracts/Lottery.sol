@@ -41,6 +41,7 @@ error BlazeLot__InvalidMatchRound();
 error BlazeLot__InvalidUpkeeper();
 error BlazeLot__RoundNotEnded();
 error BlazeLot__InvalidRound();
+error BlazeLot__TransferFailed();
 
 contract BlazeLottery is
     Ownable,
@@ -117,8 +118,17 @@ contract BlazeLottery is
     event AddToPot(address indexed user, uint256 indexed round, uint256 amount);
     event BoughtTickets(address indexed user, uint _round, uint amount);
     event EditRoundPrice(uint _round, uint _newPrice);
+    event RolloverPot(uint _round, uint _newPot);
     event StartRound(uint indexed _round);
     event UpkeeperSet(address indexed upkeeper, bool isUpkeeper);
+
+    //-------------------------------------------------------------------------
+    //    Modifiers
+    //-------------------------------------------------------------------------
+    modifier onlyUpkeeper() {
+        if (!upkeeper[msg.sender]) revert BlazeLot__InvalidUpkeeper();
+        _;
+    }
 
     //-------------------------------------------------------------------------
     //    Constructor
@@ -160,7 +170,8 @@ contract BlazeLottery is
      */
     function buyTickets(uint64[] calldata tickets) external nonReentrant {
         RoundInfo storage playingRound = roundInfo[currentRound];
-        if (!playingRound.active) revert BlazeLot__RoundInactive(currentRound);
+        if (!playingRound.active || block.timestamp > playingRound.endRound)
+            revert BlazeLot__RoundInactive(currentRound);
         // Check ticket array
         uint256 ticketAmount = tickets.length;
         if (ticketAmount == 0) {
@@ -251,7 +262,7 @@ contract BlazeLottery is
      *      - bool is if it's a round end request upkeep or winner array request upkeep
      *      - uint256[] is the array of winners that match the criteria
      */
-    function performUpkeep(bytes calldata performData) external {
+    function performUpkeep(bytes calldata performData) external onlyUpkeeper {
         //Only upkeepers can do this
         if (!upkeeper[msg.sender]) revert BlazeLot__InvalidUpkeeper();
 
@@ -276,6 +287,9 @@ contract BlazeLottery is
             currentMatches.match4 = matchers[3];
             currentMatches.match5 = matchers[4];
             currentMatches.completed = true;
+
+            rolloverAmount(currentRound, currentMatches);
+
             currentRound++;
             roundInfo[currentRound].active = true;
             roundInfo[currentRound].endRound =
@@ -295,7 +309,7 @@ contract BlazeLottery is
      * @param round Round to add the Blaze to
      */
     function addToPot(uint amount, uint round) public {
-        if (round < currentRound) revert BlazeLot__InvalidRound();
+        if (round < currentRound || round == 0) revert BlazeLot__InvalidRound();
         currency.transferFrom(msg.sender, address(this), amount);
         roundInfo[round].pot += amount;
         emit AddToPot(msg.sender, amount, round);
@@ -339,12 +353,42 @@ contract BlazeLottery is
             // pass a 6 bit mask to get the last 6 bits of each number
             winnerNumber = winnerNumber & (BIT_6_MASK << (8 * i));
         }
+        if (winnerNumber == 0) winnerNumber = uint64(1);
         matches[requestId].winnerNumber = winnerNumber;
     }
 
     //-------------------------------------------------------------------------
     //    PRIVATE FUNCTIONS
     //-------------------------------------------------------------------------
+    function rolloverAmount(uint round, Matches storage matchInfo) private {
+        RoundInfo storage playingRound = roundInfo[round];
+        RoundInfo storage nextRound = roundInfo[round + 1];
+
+        uint currentPot = playingRound.pot;
+        uint nextPot = 0;
+        if (playingRound.pot == 0) return;
+        // Check amount of winners of each match type and their distribution percentages
+        if (matchInfo.match1 == 0 && distributionPercentages[0] > 0)
+            nextPot += (currentPot * distributionPercentages[0]) / 100;
+        if (matchInfo.match2 == 0 && distributionPercentages[1] > 0)
+            nextPot += (currentPot * distributionPercentages[1]) / 100;
+        if (matchInfo.match3 == 0 && distributionPercentages[2] > 0)
+            nextPot += (currentPot * distributionPercentages[2]) / 100;
+        if (matchInfo.match4 == 0 && distributionPercentages[3] > 0)
+            nextPot += (currentPot * distributionPercentages[3]) / 100;
+        if (matchInfo.match5 == 0 && distributionPercentages[4] > 0)
+            nextPot += (currentPot * distributionPercentages[4]) / 100;
+        // BURN the Currency Amount
+        uint burnAmount = (distributionPercentages[5] * currentPot) / 100;
+        // Send the appropriate percent to the team wallet
+        uint teamPot = (distributionPercentages[6] * currentPot) / 100;
+        currency.burn(burnAmount);
+        bool succ = currency.transfer(teamWallet, teamPot);
+        if (!succ) revert BlazeLot__TransferFailed();
+        nextRound.pot += nextPot;
+        emit RolloverPot(round, nextPot);
+    }
+
     //-------------------------------------------------------------------------
     //    INTERNAL & PRIVATE VIEW & PURE FUNCTIONS
     //-------------------------------------------------------------------------
