@@ -14,7 +14,8 @@ const config: HardhatUserConfig = {
   },
   gasReporter:{
     currency: "USD",
-    token: "ETH"
+    token: "ETH",
+    excludeContracts: ["mock/", "VRFCoordinatorV2Mock", "ERC20"],
   }
 };
 
