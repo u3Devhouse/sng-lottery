@@ -18,6 +18,7 @@ describe("Lottery", function () {
     await vrf.fundSubscription(1, parseEther("10"))
     const mockToken = await MockTokenFactory.deploy();
     const lottery = await LotteryFactory.deploy(mockToken.address, vrf.address, "0xd89b2bf150e3b9e13446986e571fb9cab24b13cea0a43ea20a6049a85cc807cc", 1, team.address);
+    await vrf.addConsumer(1, lottery.address)
     await mockToken.transfer(user1.address, ethers.utils.parseEther("1000"))
     await mockToken.transfer(user2.address, ethers.utils.parseEther("1000"))
     await mockToken.transfer(user3.address, ethers.utils.parseEther("1000"))
@@ -36,6 +37,10 @@ describe("Lottery", function () {
     await mockToken.connect(user3).approve(lottery.address, parseEther("1000"))
     await mockToken.connect(user4).approve(lottery.address, parseEther("1000"))
     await mockToken.connect(user5).approve(lottery.address, parseEther("1000"))
+
+    await mockToken.connect(owner).approve(lottery.address, parseEther("10000"))
+    await lottery.connect(owner).addToPot(parseEther("10000"), 1)
+
     return init
   }
 
@@ -122,7 +127,7 @@ describe("Lottery", function () {
       await lottery.connect(user5).buyTickets(new Array(60).fill(ticketToBuy))
 
       expect((await lottery.roundInfo(0)).pot).to.equal(0)
-      expect((await lottery.roundInfo(1)).pot).to.equal(parseEther("10").mul(10 + 100 + 20 + 40 + 60))
+      expect((await lottery.roundInfo(1)).pot).to.equal(parseEther("10").mul(10 + 100 + 20 + 40 + 60).add(parseEther("10000")))
       expect((await lottery.roundInfo(2)).pot).to.equal(0)
       // Nothing on ROUND 0
       let user1Tickets = await lottery.getUserTickets(user1.address, 0)
@@ -145,6 +150,123 @@ describe("Lottery", function () {
       await time.increase(3601)
       await expect(lottery.connect(user1).buyTickets(new Array(10).fill(ticketToBuy))).to.be.revertedWithCustomError(lottery,"BlazeLot__RoundInactive").withArgs(1)
     })
+  })
+
+  describe("Round Ends and Draws", ()=>{
+    it("Should have true on upkeep needed when round ends", async () => {
+      const { lottery } = await loadFixture(setupStarted);
+      await time.increase(3601)
+      const upkeepCheck = await lottery.checkUpkeep("0x00")
+      expect(upkeepCheck.upkeepNeeded).to.equal(true)
+      const decodedPerformData = ethers.utils.defaultAbiCoder.decode(["bool", "uint[]"], upkeepCheck.performData)
+      expect(decodedPerformData[0]).to.equal(true)
+      expect(decodedPerformData[1].length).to.equal(5)
+      expect(decodedPerformData[1][0]).to.equal(0)
+    })
+    it("Should not allow to draw if round is not finished", async () => {
+      const { lottery } = await loadFixture(setupStarted);
+
+      const upkeepCheck = await lottery.checkUpkeep("0x00")
+      expect(upkeepCheck.upkeepNeeded).to.equal(false)
+      const decodedPerformData = ethers.utils.defaultAbiCoder.decode(["bool", "uint[]"], upkeepCheck.performData)
+      expect(decodedPerformData[0]).to.equal(true)
+      expect(decodedPerformData[1].length).to.equal(5)
+      expect(decodedPerformData[1][0]).to.equal(0)
+      await expect(lottery.endRound()).to.be.revertedWithCustomError(lottery, "BlazeLot__InvalidRoundEndConditions");
+    })
+    it("Should request a winner and set the data appropriately", async () => {
+      const { lottery, team, user1, user2, user3, user4, upkeep, vrf, mockToken } = await loadFixture(setupStarted);
+      const ticketToBuy1 = convertToHex([10,20,30,40,50])
+      const ticketToBuy2 = convertToHex([10,63,48,55,11])
+      const ticketToBuy3 = convertToHex([19,15,4,8,24])
+      const ticketToBuy4 = convertToHex([10,3,36,23,22])
+
+      await lottery.connect(user1).buyTickets(new Array(10).fill(ticketToBuy1))
+      await lottery.connect(user2).buyTickets(new Array(100).fill(ticketToBuy2))
+      await lottery.connect(user3).buyTickets(new Array(20).fill(ticketToBuy3))
+      await lottery.connect(user4).buyTickets(new Array(1).fill(ticketToBuy4))
+      const totalTicketsPot = parseEther("10").mul(10 + 100 + 20 + 1).add(parseEther("10000"))
+
+      await time.increase(3601);
+      const upkeepCheck = await lottery.checkUpkeep("0x00")
+      const decodedPerformData = ethers.utils.defaultAbiCoder.decode(["bool", "uint[]"], upkeepCheck.performData)
+      expect( upkeepCheck.upkeepNeeded).to.equal(true)
+      expect(decodedPerformData[0]).to.equal(true)
+
+      await expect(lottery.connect(upkeep).performUpkeep(upkeepCheck.performData)).to.emit(vrf, "RandomWordsRequested")
+      // Shouldn't allow to draw again while waiting for randomness
+      const roundInfo = await lottery.roundInfo(1)
+      expect(roundInfo.randomnessRequestID).to.equal(1)
+      const afterRequestUpkeepCheck = await lottery.checkUpkeep("0x00")
+      expect(afterRequestUpkeepCheck.upkeepNeeded).to.equal(false)
+      await expect(lottery.endRound()).to.be.revertedWithCustomError(lottery, "BlazeLot__InvalidRoundEndConditions");
+
+      // fulfill randomness
+      const randonNumberSelected = convertToHex([4,10,3,87,5])
+      await vrf.fulfillRandomWordsWithOverride(1, lottery.address, [randonNumberSelected])
+      // requestId = 1 ?
+      const matchings = await lottery.matches(1)
+      expect(matchings.winnerNumber).to.equal( convertToHex([4,10,3,23,5])) // digit over 6 bits got turned to 6 bit number
+      expect(matchings.match1).to.equal(0)
+      // Should request upkeep again
+      const afterRandomnessUpkeepCheck = await lottery.checkUpkeep("0x00")
+      expect(afterRandomnessUpkeepCheck.upkeepNeeded).to.equal(true)
+      const decodedPerformData2 = ethers.utils.defaultAbiCoder.decode(["bool", "uint[]"], afterRandomnessUpkeepCheck.performData)
+      expect(decodedPerformData2[0]).to.equal(false)
+      expect(decodedPerformData2[1][0]).to.equal(20+110)
+      expect(decodedPerformData2[1][1]).to.equal(0)
+      expect(decodedPerformData2[1][2]).to.equal(1)
+      expect(decodedPerformData2[1][3]).to.equal(0)
+      expect(decodedPerformData2[1][4]).to.equal(0)
+
+      // Should not allow to draw again while round has not advanced
+      await expect(lottery.endRound()).to.revertedWithCustomError(lottery, "BlazeLot__InvalidRoundEndConditions");
+      const tokenSupplyBeforeUpkeep = await mockToken.totalSupply()
+      // Not allowed to perform upkeep if not upkeeper
+      await expect(lottery.connect(user1).performUpkeep(afterRandomnessUpkeepCheck.performData)).to.be.revertedWithCustomError(lottery, "BlazeLot__InvalidUpkeeper");
+      // Should perform upkeep
+      await expect(lottery.connect(upkeep).performUpkeep(afterRandomnessUpkeepCheck.performData)).to.emit(lottery, "RolloverPot").withArgs(1, totalTicketsPot.div(2))
+      const roundInfo2 = await lottery.roundInfo(2)
+      expect(roundInfo2.active).to.equal(true)
+      expect(roundInfo2.randomnessRequestID).to.equal(0)
+      const round1InfoEnded = await lottery.roundInfo(1)
+      expect(round1InfoEnded.active).to.equal(false)
+      // Price got rolled over
+      expect(roundInfo2.price).to.equal(round1InfoEnded.price)
+      const round1Winners = await lottery.matches(1)
+      // Check that all data was added appropriately
+      expect(round1Winners.match1).to.equal(130)
+      expect(round1Winners.match2).to.equal(0)
+      expect(round1Winners.match3).to.equal(1)
+      expect(round1Winners.match4).to.equal(0)
+      expect(round1Winners.match5).to.equal(0)
+      // Check that pot was rolled over
+      expect(roundInfo2.pot).to.equal(totalTicketsPot.div(2))
+      // Tokens were burned
+      expect(tokenSupplyBeforeUpkeep).to.be.gt(await mockToken.totalSupply())
+      // tokens were sent to team wallet
+      expect(await mockToken.balanceOf(team.address)).to.equal(totalTicketsPot.mul(5).div(100))
+
+    })
+    it("Should roll over all funds to next round if no one plays", async () => {
+      const { lottery, team, user1, user2, user3, user4, upkeep, vrf, mockToken } = await loadFixture(setupStarted);
+      await time.increase(3601);
+      await lottery.connect(user1).endRound()
+      expect(await lottery.currentRound()).to.equal(2)
+      const roundInfo = await lottery.roundInfo(1)
+      const round2Info = await lottery.roundInfo(2)
+      expect(round2Info.active).to.equal(true)
+      expect(roundInfo.active).to.equal(false)
+      expect(round2Info.pot).to.equal(roundInfo.pot.mul(75).div(100))
+      
+    })
+  })
+
+  describe("Claim Winnings", () => {
+    it("Should not allow to claim winnings if round is not finished")
+    it("should not allow to claim winnings if tickets are not winners")
+    it("Should allow to claim winnings if tickets are winners")
+    it("Should be able to claim winnings from multiple rounds")
   })
 
 })
