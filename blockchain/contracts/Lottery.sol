@@ -39,7 +39,7 @@ error BlazeLot__InsufficientTickets();
 error BlazeLot__InvalidMatchers();
 error BlazeLot__InvalidMatchRound();
 error BlazeLot__InvalidUpkeeper();
-error BlazeLot__RoundNotEnded();
+error BlazeLot__InvalidRoundEndConditions();
 error BlazeLot__InvalidRound();
 error BlazeLot__TransferFailed();
 
@@ -119,6 +119,7 @@ contract BlazeLottery is
     event BoughtTickets(address indexed user, uint _round, uint amount);
     event EditRoundPrice(uint _round, uint _newPrice);
     event RolloverPot(uint _round, uint _newPot);
+    event RoundEnded(uint indexed _round);
     event StartRound(uint indexed _round);
     event UpkeeperSet(address indexed upkeeper, bool isUpkeeper);
 
@@ -287,16 +288,8 @@ contract BlazeLottery is
             currentMatches.match4 = matchers[3];
             currentMatches.match5 = matchers[4];
             currentMatches.completed = true;
-
             rolloverAmount(currentRound, currentMatches);
-
-            currentRound++;
-            roundInfo[currentRound].active = true;
-            roundInfo[currentRound].endRound =
-                playingRound.endRound +
-                roundDuration;
-            if (roundInfo[currentRound].price == 0)
-                roundInfo[currentRound].price = playingRound.price;
+            newRound(playingRound);
         }
     }
 
@@ -328,17 +321,23 @@ contract BlazeLottery is
             playingRound.randomnessRequestID == 0
         ) {
             playingRound.active = false;
-            uint requestId = VRFCoordinatorV2Interface(vrfCoordinator)
-                .requestRandomWords(
-                    keyHash,
-                    subscriptionId,
-                    minimumRequestConfirmations,
-                    callbackGasLimit,
-                    1
-                );
-            playingRound.randomnessRequestID = requestId;
-            matches[requestId].roundId = currentRound;
-        } else revert BlazeLot__RoundNotEnded();
+            emit RoundEnded(currentRound);
+            if (playingRound.ticketsBought == 0) {
+                rolloverAmount(currentRound, matches[0]);
+                newRound(playingRound);
+            } else {
+                uint requestId = VRFCoordinatorV2Interface(vrfCoordinator)
+                    .requestRandomWords(
+                        keyHash,
+                        subscriptionId,
+                        minimumRequestConfirmations,
+                        callbackGasLimit,
+                        1
+                    );
+                playingRound.randomnessRequestID = requestId;
+                matches[requestId].roundId = currentRound;
+            }
+        } else revert BlazeLot__InvalidRoundEndConditions();
     }
 
     //-------------------------------------------------------------------------
@@ -349,12 +348,13 @@ contract BlazeLottery is
         uint256[] memory randomWords
     ) internal override {
         uint64 winnerNumber = uint64(randomWords[0]);
+        uint64 addedMask = 0;
         for (uint8 i = 0; i < 5; i++) {
             // pass a 6 bit mask to get the last 6 bits of each number
-            winnerNumber = winnerNumber & (BIT_6_MASK << (8 * i));
+            addedMask += winnerNumber & (BIT_6_MASK << (8 * i));
         }
-        if (winnerNumber == 0) winnerNumber = uint64(1);
-        matches[requestId].winnerNumber = winnerNumber;
+        if (addedMask == 0) addedMask = uint64(1);
+        matches[requestId].winnerNumber = addedMask;
     }
 
     //-------------------------------------------------------------------------
@@ -387,6 +387,16 @@ contract BlazeLottery is
         if (!succ) revert BlazeLot__TransferFailed();
         nextRound.pot += nextPot;
         emit RolloverPot(round, nextPot);
+    }
+
+    function newRound(RoundInfo storage playingRound) private {
+        currentRound++;
+        roundInfo[currentRound].active = true;
+        roundInfo[currentRound].endRound =
+            playingRound.endRound +
+            roundDuration;
+        if (roundInfo[currentRound].price == 0)
+            roundInfo[currentRound].price = playingRound.price;
     }
 
     //-------------------------------------------------------------------------
