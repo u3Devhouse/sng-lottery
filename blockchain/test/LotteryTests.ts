@@ -126,6 +126,9 @@ describe("Lottery", function () {
       await lottery.connect(user4).buyTickets(new Array(40).fill(ticketToBuy))
       await lottery.connect(user5).buyTickets(new Array(60).fill(ticketToBuy))
 
+      // Cant buy zero tickets
+      await expect( lottery.connect(user1).buyTickets([])).to.be.revertedWithCustomError(lottery,"BlazeLot__InsufficientTickets")
+
       expect((await lottery.roundInfo(0)).pot).to.equal(0)
       expect((await lottery.roundInfo(1)).pot).to.equal(parseEther("10").mul(10 + 100 + 20 + 40 + 60).add(parseEther("10000")))
       expect((await lottery.roundInfo(2)).pot).to.equal(0)
@@ -208,6 +211,9 @@ describe("Lottery", function () {
       const matchings = await lottery.matches(1)
       expect(matchings.winnerNumber).to.equal( convertToHex([4,10,3,23,5])) // digit over 6 bits got turned to 6 bit number
       expect(matchings.match1).to.equal(0)
+      // Shouldnt allow to buy tickets
+      await expect(lottery.connect(user1).buyTickets(new Array(10).fill(ticketToBuy1))).to.be.revertedWithCustomError(lottery,"BlazeLot__RoundInactive").withArgs(1)
+      
       // Should request upkeep again
       const afterRandomnessUpkeepCheck = await lottery.checkUpkeep("0x00")
       expect(afterRandomnessUpkeepCheck.upkeepNeeded).to.equal(true)
@@ -226,6 +232,10 @@ describe("Lottery", function () {
       await expect(lottery.connect(user1).performUpkeep(afterRandomnessUpkeepCheck.performData)).to.be.revertedWithCustomError(lottery, "BlazeLot__InvalidUpkeeper");
       // Should perform upkeep
       await expect(lottery.connect(upkeep).performUpkeep(afterRandomnessUpkeepCheck.performData)).to.emit(lottery, "RolloverPot").withArgs(1, totalTicketsPot.div(2))
+      // New CheckUpkeep should be false
+      const afterUpkeepUpkeepCheck = await lottery.checkUpkeep("0x00")
+      expect(afterUpkeepUpkeepCheck.upkeepNeeded).to.equal(false)
+      // Round should have advanced
       const roundInfo2 = await lottery.roundInfo(2)
       expect(roundInfo2.active).to.equal(true)
       expect(roundInfo2.randomnessRequestID).to.equal(0)
@@ -262,10 +272,70 @@ describe("Lottery", function () {
     })
   })
 
+  async function setupTicketsBought () {
+    const init = await setupStarted()
+
+    const { lottery, team, user1, user2, user3, user4, user5, upkeep, vrf, mockToken } = init;
+    const ticketToBuy1 = convertToHex([10,20,30,40,50]) // match 1
+    const ticketToBuy2 = convertToHex([10,63,48,5,11]) // match 2
+    const ticketToBuy3 = convertToHex([19,3,4,5,23]) // match 4
+    const ticketToBuy4 = convertToHex([10,3,36,23,22]) // match 3
+    const ticketToBuy5 = convertToHex([0,0,0,0,0])
+
+    await lottery.connect(user1).buyTickets(new Array(2).fill(ticketToBuy1))
+    await lottery.connect(user2).buyTickets(new Array(4).fill(ticketToBuy2))
+    await lottery.connect(user3).buyTickets(new Array(2).fill(ticketToBuy3))
+    await lottery.connect(user4).buyTickets(new Array(1).fill(ticketToBuy4))
+    await lottery.connect(user5).buyTickets(new Array(5).fill(ticketToBuy5))
+
+    const pot = (await lottery.roundInfo(1)).pot
+
+    return {...init, pot}
+  }
+
+  async function setupRoundEnded() {
+    const init = await setupTicketsBought()
+    const { lottery, upkeep, vrf } = init;
+    // End the round
+    await time.increase(3601);
+    const upkeepCheck = await lottery.checkUpkeep("0x00")
+    await lottery.connect(upkeep).performUpkeep(upkeepCheck.performData)
+    // fulfill randomness
+    const randonNumberSelected = convertToHex([4,10,3,23,5])
+    await vrf.fulfillRandomWordsWithOverride(1, lottery.address, [randonNumberSelected])
+    // Set winners
+    const afterRandomnessUpkeepCheck = await lottery.checkUpkeep("0x00")
+    await lottery.connect(upkeep).performUpkeep(afterRandomnessUpkeepCheck.performData)
+    return init
+  }
+
   describe("Claim Winnings", () => {
-    it("Should not allow to claim winnings if round is not finished")
-    it("should not allow to claim winnings if tickets are not winners")
-    it("Should allow to claim winnings if tickets are winners")
+    it("Should not allow to claim winnings if round is not finished", async () => {
+      const { lottery, user1 } = await loadFixture(setupTicketsBought);
+      await expect(lottery.connect(user1).claimTickets(1, [0,1,2,3,4], [0,1,2,3,4])).to.be.revertedWithCustomError(lottery, "BlazeLot__InvalidRound");
+      
+    })
+    it("should not allow to claim winnings if tickets are not winners", async() => {
+      const { lottery, user1, user5 } = await loadFixture(setupRoundEnded);
+
+      // function reverts when trying to claim tickets that are not winners
+      // if a single ticket is not a winner, the whole claim is reverted
+      await expect(lottery.connect(user5).claimTickets(1, [0,1,2,3,4], [0,1,2,3,4])).to.be.revertedWithCustomError(lottery, "BlazeLot__InvalidClaimMatch").withArgs(0);// args(ticketIndex)
+      // Cannot claim duplicate indexed tickets
+      await expect(lottery.connect(user1).claimTickets(1, [0,0], [1,1])).to.be.revertedWithCustomError(lottery, "BlazeLot__DuplicateTicketIdClaim").withArgs(1,0); // args( round id,ticket index, match)
+
+    })
+    it("Should allow to claim winnings if tickets are winners", async () =>{
+      const { lottery, user3, user4, upkeep, vrf, mockToken, pot } = await loadFixture(setupRoundEnded);
+      // Make sure user can claim winnings
+      const initU1Balance = await mockToken.balanceOf(user3.address);
+      expect(await lottery.checkTicket(1, 0, user3.address)).to.equal(pot.div(4).div(2))
+      await expect(lottery.checkTickets(1, [0,3], user3.address)).to.be.revertedWithPanic();
+      await expect(lottery.connect(user3).claimTickets(1, [0,1], [4,4])).to.emit(lottery, "RewardClaimed").withArgs(user3.address, pot.div(4));
+      expect(await mockToken.balanceOf(user3.address)).to.equal(initU1Balance.add(pot.div(4)));
+      await expect(lottery.connect(user3).claimTickets(1, [0], [4])).to.be.revertedWithCustomError(lottery, "BlazeLot__DuplicateTicketIdClaim").withArgs(1,0); // args( round id,ticket index)
+
+    })
     it("Should be able to claim winnings from multiple rounds")
   })
 
