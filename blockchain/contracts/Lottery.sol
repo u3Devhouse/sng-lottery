@@ -42,6 +42,9 @@ error BlazeLot__InvalidUpkeeper();
 error BlazeLot__InvalidRoundEndConditions();
 error BlazeLot__InvalidRound();
 error BlazeLot__TransferFailed();
+error BlazeLot__InvalidClaim();
+error BlazeLot__DuplicateTicketIdClaim(uint _round, uint _ticketIndex);
+error BlazeLot__InvalidClaimMatch(uint ticketIndex);
 
 contract BlazeLottery is
     Ownable,
@@ -77,8 +80,15 @@ contract BlazeLottery is
     //-------------------------------------------------------------------------
     //    State Variables
     //-------------------------------------------------------------------------
-    mapping(address => bool) public upkeeper;
-    mapping(uint randomnessRequestID => Matches) public matches;
+    // kept for coverage purposes
+    // mapping(address => bool ) public upkeeper;
+    // mapping(uint  => Matches ) public matches;
+    // mapping(uint => RoundInfo) public roundInfo;
+    // mapping(uint => address[]) private roundUsers;
+    // mapping(address  => mapping(uint => UserTickets))
+    //     private userTickets;
+    mapping(address _upkeep => bool _enabled) public upkeeper;
+    mapping(uint _randomnessRequestID => Matches _winnerMatches) public matches;
     mapping(uint _roundId => RoundInfo) public roundInfo;
     mapping(uint _roundId => address[] participatingUsers) private roundUsers;
     mapping(address _user => mapping(uint _round => UserTickets _all))
@@ -107,6 +117,7 @@ contract BlazeLottery is
     IERC20Burnable public currency;
     uint256 public currentRound;
     uint256 public roundDuration;
+    uint256 public constant PERCENTAGE_BASE = 100;
     uint64 public constant BIT_8_MASK = 0x00000000000000FF;
     uint64 public constant BIT_6_MASK = 0x000000000000003F;
     uint8 public constant BIT_1_MASK = 0x01;
@@ -122,6 +133,7 @@ contract BlazeLottery is
     event RoundEnded(uint indexed _round);
     event StartRound(uint indexed _round);
     event UpkeeperSet(address indexed upkeeper, bool isUpkeeper);
+    event RewardClaimed(address indexed _user, uint rewardAmount);
 
     //-------------------------------------------------------------------------
     //    Modifiers
@@ -195,11 +207,21 @@ contract BlazeLottery is
         emit BoughtTickets(msg.sender, currentRound, ticketAmount);
     }
 
+    /**
+     *
+     * @param _round round to claim tickets from
+     * @param _userTicketIndexes Indexes / IDs of the tickets to claim
+     * @param _matches matching number of the ticket/id to claim
+     */
     function claimTickets(
         uint _round,
         uint[] calldata _userTicketIndexes,
         uint8[] calldata _matches
-    ) external nonReentrant {}
+    ) public nonReentrant {
+        uint toReward = _claimTickets(_round, _userTicketIndexes, _matches);
+        if (toReward > 0) currency.transfer(msg.sender, toReward);
+        emit RewardClaimed(msg.sender, toReward);
+    }
 
     /**
      *
@@ -213,7 +235,29 @@ contract BlazeLottery is
         uint[] calldata _ticketsPerRound,
         uint[] calldata _ticketIndexes,
         uint8[] calldata _matches
-    ) external nonReentrant {}
+    ) external nonReentrant {
+        if (
+            _rounds.length != _ticketsPerRound.length ||
+            _rounds.length == 0 ||
+            _ticketIndexes.length != _matches.length ||
+            _ticketIndexes.length == 0
+        ) revert BlazeLot__InvalidClaim();
+        uint ticketOffset;
+        uint rewards;
+        for (uint i = 0; i < _rounds.length; i++) {
+            uint round = _rounds[i];
+            uint endOffset = _ticketsPerRound[i] - 1;
+            uint[] memory tickets = _ticketIndexes[ticketOffset:ticketOffset +
+                endOffset];
+            uint8[] memory allegedMatch = _matches[ticketOffset:ticketOffset +
+                endOffset];
+
+            rewards += _claimTickets(round, tickets, allegedMatch);
+            ticketOffset += _ticketsPerRound[i];
+        }
+        if (rewards > 0) currency.transfer(msg.sender, rewards);
+        emit RewardClaimed(msg.sender, rewards);
+    }
 
     /**
      * @notice Edit the price for an upcoming round
@@ -357,6 +401,55 @@ contract BlazeLottery is
         matches[requestId].winnerNumber = addedMask;
     }
 
+    function _claimTickets(
+        uint _round,
+        uint[] memory _userTicketIndexes,
+        uint8[] memory _matches
+    ) internal returns (uint) {
+        if (_round >= currentRound) revert BlazeLot__InvalidRound();
+        if (
+            _userTicketIndexes.length != _matches.length ||
+            _userTicketIndexes.length == 0
+        ) revert BlazeLot__InvalidClaim();
+        RoundInfo storage round = roundInfo[_round];
+
+        UserTickets storage user = userTickets[msg.sender][_round];
+        if (user.tickets.length < _userTicketIndexes.length)
+            revert BlazeLot__InvalidClaim();
+
+        Matches storage roundMatches = matches[round.randomnessRequestID];
+        uint toReward;
+
+        // Cycle through all tickets to claim
+        for (uint i = 0; i < _userTicketIndexes.length; i++) {
+            uint ticketIndex = _userTicketIndexes[i];
+            // index is checked and if out of bounds, will revert
+            if (_matches[i] == 0 || _matches[i] > 5)
+                revert BlazeLot__InvalidClaimMatch(i);
+
+            if (user.claimed[ticketIndex])
+                revert BlazeLot__DuplicateTicketIdClaim(_round, ticketIndex);
+
+            uint64 ticket = user.tickets[ticketIndex];
+
+            if (
+                _compareTickets(roundMatches.winnerNumber, ticket) ==
+                _matches[i]
+            ) {
+                uint totalMatches = getTotalMatches(roundMatches, _matches[i]);
+
+                user.claimed[ticketIndex] = true;
+
+                uint256 matchReward = (round.pot *
+                    distributionPercentages[_matches[i] - 1]);
+                toReward += matchReward / (totalMatches * PERCENTAGE_BASE);
+            } else {
+                revert BlazeLot__InvalidClaimMatch(i);
+            }
+        }
+        return toReward;
+    }
+
     //-------------------------------------------------------------------------
     //    PRIVATE FUNCTIONS
     //-------------------------------------------------------------------------
@@ -397,6 +490,18 @@ contract BlazeLottery is
             roundDuration;
         if (roundInfo[currentRound].price == 0)
             roundInfo[currentRound].price = playingRound.price;
+    }
+
+    function getTotalMatches(
+        Matches storage winners,
+        uint8 matched
+    ) private view returns (uint) {
+        if (matched == 1) return winners.match1;
+        if (matched == 2) return winners.match2;
+        if (matched == 3) return winners.match3;
+        if (matched == 4) return winners.match4;
+        if (matched == 5) return winners.match5;
+        return 0;
     }
 
     //-------------------------------------------------------------------------
@@ -500,13 +605,62 @@ contract BlazeLottery is
 
     function checkTicket(
         uint round,
-        uint _userTicketIndex
-    ) external view returns (uint) {}
+        uint _userTicketIndex,
+        address _user
+    ) external view returns (uint) {
+        uint pot = roundInfo[round].pot;
+        uint64 winnerNumber = matches[roundInfo[round].randomnessRequestID]
+            .winnerNumber;
+        if (pot == 0 || winnerNumber == 0) return 0;
+        // Check if user has claimed this ticket
+        if (userTickets[_user][round].claimed[_userTicketIndex]) return 0;
+
+        uint8 _matched_ = _compareTickets(
+            matches[roundInfo[round].randomnessRequestID].winnerNumber,
+            userTickets[_user][round].tickets[_userTicketIndex]
+        );
+        if (_matched_ == 0) return 0;
+        uint totalMatches = getTotalMatches(
+            matches[roundInfo[round].randomnessRequestID],
+            _matched_
+        );
+        if (totalMatches == 0) return 0;
+        return
+            (pot * distributionPercentages[_matched_ - 1]) /
+            (PERCENTAGE_BASE * totalMatches);
+    }
 
     function checkTickets(
         uint round,
-        uint[] calldata _userTicketIndexes
-    ) external view returns (uint) {}
+        uint[] calldata _userTicketIndexes,
+        address _user
+    ) external view returns (uint) {
+        uint pot = roundInfo[round].pot;
+        uint64 winnerNumber = matches[roundInfo[round].randomnessRequestID]
+            .winnerNumber;
+        if (pot == 0 || winnerNumber == 0) return 0;
+
+        uint totalReward;
+        uint rndId = roundInfo[round].randomnessRequestID;
+
+        for (uint i = 0; i < _userTicketIndexes.length; i++) {
+            uint ticketIndex = _userTicketIndexes[i];
+            // Check if user has claimed this ticket
+            if (userTickets[_user][round].claimed[ticketIndex]) continue;
+
+            uint8 _matched_ = _compareTickets(
+                matches[rndId].winnerNumber,
+                userTickets[_user][round].tickets[ticketIndex]
+            );
+            if (_matched_ == 0) continue;
+            uint totalMatches = getTotalMatches(matches[rndId], _matched_);
+            if (totalMatches == 0) continue;
+            totalReward +=
+                (pot * distributionPercentages[_matched_ - 1]) /
+                (PERCENTAGE_BASE * totalMatches);
+        }
+        return totalReward;
+    }
 
     function getUserTickets(
         address _user,
