@@ -44,6 +44,19 @@ describe("Lottery", function () {
     return init
   }
 
+  describe("Before Initialized", ()=> {
+    it("Should not allow to trigger end round", async () => {
+      const { lottery, owner, user1, user2, user3, user4, user5, mockToken} = await loadFixture(setup);
+      await expect(lottery.endRound()).to.be.revertedWithCustomError(lottery, "BlazeLot__InvalidRoundEndConditions")
+    })
+    it("Should not allow to perform upkeep", async () => {
+      const { lottery, upkeep} = await loadFixture(setup);
+    await lottery.setUpkeeper(upkeep.address, true)
+    const data = await ethers.utils.defaultAbiCoder.encode(["bool","uint256[]"], [false, [0,0,0,0,0]])
+      await expect(lottery.connect(upkeep).performUpkeep(data)).to.be.revertedWithCustomError(lottery,"BlazeLot__InvalidMatchRound")
+    })
+  })
+
   describe("Owner Functions", ()=>{
     it("Should set the price for current Round", async() => {
       const { lottery, owner, user1, user2, user3, user4, user5, mockToken} = await loadFixture(setup);
