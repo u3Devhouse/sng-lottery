@@ -1,0 +1,18 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base{
+  html{
+    color-scheme: dark;
+    background: linear-gradient(180deg, #323B95 0%, #1E2036 100%);
+  }
+}
+
+@media screen and (max-width: 740px) {
+  #hide {
+
+    visibility: hidden;
+    display: none;
+  }
+}
