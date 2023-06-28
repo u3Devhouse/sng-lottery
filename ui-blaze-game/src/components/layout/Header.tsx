@@ -4,25 +4,23 @@ import { TiSocialFacebook, TiSocialTwitter } from "react-icons/ti";
 import { GrInstagram } from "react-icons/gr";
 import { RiMessengerFill } from "react-icons/ri";
 import { HiMenuAlt2 } from "react-icons/hi";
+import { Web3Button } from "@/components/wagmiComponents/Web3Button";
 
 const Header = () => {
   return (
-    <header className="flex w-full flex-row items-center justify-between px-8 pt-4 pb-8">
+    <header className="flex w-full flex-row items-center justify-between px-8 py-4 bg-secondary-bg header-shadow">
       <nav className="flex flex-grow flex-row items-center justify-between gap-x-4">
-        <Link href="/">
+        <Link
+          href="/"
+          className="flex flex-row items-center justify-center gap-x-4"
+        >
           <Image src="/blaze_logo.png" alt="Logo" width={60} height={60} />
-        </Link>
-        <div className="hidden flex-row items-center gap-x-4 md:flex">
-          <Link
-            // href="https://blaze-lottery.com/"
-            href="/"
-            className="w-18 text-center text-lg font-light hover:underline lg:w-20"
-            target={"_blank"}
-          >
+          <div className="text-2xl italic font-bold text-primary-text uppercase">
             Blaze Lottery
-          </Link>
-
-          {/* <Web3Button label="Connect" icon="hide" /> */}
+          </div>
+        </Link>
+        <div>
+          <Web3Button />
         </div>
         <div className="md:hidden">
           <button>

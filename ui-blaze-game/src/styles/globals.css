@@ -4,8 +4,17 @@
 
 @layer base{
   html{
+    @apply bg-primary-bg;
     color-scheme: dark;
-    background: linear-gradient(180deg, #323B95 0%, #1E2036 100%);
+  }
+}
+
+@layer components {
+  .header-shadow{
+    box-shadow:  4px 4px 0px rgba(255, 0, 0, 0.25);
+  }
+  .main-bg{
+    background-color: #72159347;
   }
 }
 
