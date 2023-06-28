@@ -17,12 +17,18 @@ import { Web3Button } from "@/components/wagmiComponents/Web3Button";
 import { WriteContract } from "@/components/wagmiComponents/WriteContract";
 import { WriteContractPrepared } from "@/components/wagmiComponents/WriteContractPrepared";
 
+import Card from "@/components/lottery/Card";
+
 export function Page() {
   return (
     <>
-      <h1 className="text-4xl font-outfit font-bold drop-shadow-md text-center mt-14">
+      <h1 className="text-4xl font-outfit font-bold drop-shadow-md text-center my-14">
         Get your tickets & Play!
       </h1>
+      <section className="w-full py-4 flex flex-col items-center">
+        <h2 className="underline font-outfit">Current Round</h2>
+        <Card />
+      </section>
     </>
   );
 }
