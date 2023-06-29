@@ -3,6 +3,7 @@ import Image from "next/image";
 import { useEffect } from "react";
 import { FaChevronDown } from "react-icons/fa";
 import format from "date-fns/format";
+import { useSetAtom } from "jotai";
 // Contracts
 import { useAccount, useContractRead, useContractReads } from "wagmi";
 import { formatEther, zeroAddress } from "viem";
@@ -16,8 +17,12 @@ import {
 } from "@/data/contracts";
 // Images
 import flyingTokens from "@/../public/assets/flying_tokens.png";
+//  Data
+import { blazeInfo, openBuyTicketModal } from "@/data/atoms";
 
 const Card = () => {
+  const setOpenBuyTicketModal = useSetAtom(openBuyTicketModal);
+  const setBlazeInfo = useSetAtom(blazeInfo);
   const { address } = useAccount();
   const { data: currentRound, refetch: currentRoundRefetch } = useContractRead({
     address: lotteryContract,
@@ -52,6 +57,17 @@ const Card = () => {
       },
     ],
   });
+
+  useEffect(() => {
+    setBlazeInfo({
+      price:
+        (Number(roundInfo?.[2]?.result?.[1] || 0) *
+          (Number(roundInfo?.[3]?.result?.[1] || 0n) / 1e8)) /
+        Number(roundInfo?.[2]?.result?.[0] || 1),
+      ticketPrice: Number(formatEther(roundInfo?.[0]?.result?.[2] || 0n)),
+      currentRound: Number(currentRound?.toString() || 0),
+    });
+  }, [setBlazeInfo, roundInfo, currentRound]);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -116,7 +132,10 @@ const Card = () => {
             </div>
           )}
           <div className="py-4">
-            <button className="btn btn-accent btn-sm text-white">
+            <button
+              className="btn btn-accent btn-sm text-white"
+              onClick={() => setOpenBuyTicketModal(true)}
+            >
               Buy Tickets
             </button>
           </div>
