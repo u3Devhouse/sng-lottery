@@ -31,21 +31,8 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${roboto.className} ${outfit.variable}`}>
       <body className="main-bg min-h-screen relative">
-        <div className="-z-10 absolute top-0 left-0 max-h-[100%]">
-          <Image
-            src={bgImage}
-            alt="background Flare"
-            placeholder="blur"
-            sizes="100vw"
-            style={{ objectFit: "cover" }}
-          />
-          <Image
-            src={bgImage}
-            alt="background Flare"
-            placeholder="blur"
-            sizes="100vw"
-            style={{ objectFit: "cover", transform: "scaleY(-1)" }}
-          />
+        <div className="-z-10 absolute top-0 left-0 w-screen h-full">
+          <Image src={bgImage} alt="background Flare" placeholder="blur" fill />
         </div>
         <Providers>
           <Header />
