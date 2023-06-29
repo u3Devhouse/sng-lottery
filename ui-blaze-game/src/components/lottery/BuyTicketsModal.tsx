@@ -4,9 +4,19 @@ import { blazeInfo, openBuyTicketModal } from "@/data/atoms";
 // Images
 import Image from "next/image";
 import flame from "@/../public/assets/tiny_flame.png";
-import { erc20ABI, useAccount, useContractRead } from "wagmi";
-import { blazeToken } from "@/data/contracts";
-import { formatEther, zeroAddress } from "viem";
+import loadingGif from "@/../public/assets/loading_flame.gif";
+//  Contracts
+import {
+  erc20ABI,
+  useAccount,
+  useContractReads,
+  useContractWrite,
+  usePrepareContractWrite,
+  useToken,
+  useWaitForTransaction,
+} from "wagmi";
+import { blazeToken, lotteryAbi, lotteryContract } from "@/data/contracts";
+import { BaseError, formatEther, parseEther, toHex, zeroAddress } from "viem";
 import { useState } from "react";
 import { useImmer } from "use-immer";
 import { BiSolidEdit } from "react-icons/bi";
@@ -16,12 +26,22 @@ type TicketView = [number, number, number, number, number];
 
 const BuyTicketsModal = () => {
   const { address } = useAccount();
-  const { data: blazeBalance } = useContractRead({
-    address: blazeToken,
-    abi: erc20ABI,
-    functionName: "balanceOf",
-    chainId: 1,
-    args: [address || zeroAddress],
+  const { data: tokenData } = useToken({ address: blazeToken });
+  const { data: blazeBalance } = useContractReads({
+    contracts: [
+      {
+        address: "0x280100b6bEC80e354B970F48fadff7c9a455aCC0", //blazeToken,
+        abi: erc20ABI,
+        functionName: "balanceOf",
+        args: [address || zeroAddress],
+      },
+      {
+        address: "0x280100b6bEC80e354B970F48fadff7c9a455aCC0", //blazeToken,
+        abi: erc20ABI,
+        functionName: "allowance",
+        args: [address || zeroAddress, lotteryContract],
+      },
+    ],
   });
   const roundInfo = useAtomValue(blazeInfo);
   const [openModal, setOpenModal] = useAtom(openBuyTicketModal);
@@ -34,14 +54,66 @@ const BuyTicketsModal = () => {
   const [selectedIndex, setSelectedIndex] = useState<number>(0);
   const [view, setView] = useState(0);
 
-  console.log({ allTickets });
-
   const reset = () => {
     setTicketAmount(0);
     setAllTickets([]);
     setView(0);
     setOpenModal(false);
   };
+
+  const ticketsInHex = allTickets.map((ticket) =>
+    BigInt(
+      "0x" +
+        ticket
+          .map((number) => toHex(number, { size: 1 }).replace("0x", ""))
+          .join("")
+    )
+  );
+  console.log(ticketsInHex);
+
+  // --------------------
+  // Approve Blaze in lottery
+  // --------------------
+  const { config: approveConfig } = usePrepareContractWrite({
+    address: blazeToken,
+    abi: erc20ABI,
+    functionName: "approve",
+    args: [
+      lotteryContract,
+      tokenData?.totalSupply.value || parseEther("10000000000000000000"),
+    ],
+    chainId: 1,
+  });
+  const { write: approveWrite, data: approveTxData } =
+    useContractWrite(approveConfig);
+  const {
+    data: approveReceipt,
+    isLoading: approvePendingTx,
+    isSuccess: approveSuccess,
+  } = useWaitForTransaction({ hash: approveTxData?.hash });
+  // --------------------
+  // BUY TICKETS
+  // --------------------
+  const {
+    config,
+    error: prepErr,
+    data: prepData,
+  } = usePrepareContractWrite({
+    address: lotteryContract,
+    abi: lotteryAbi,
+    functionName: "buyTickets",
+    args: [ticketsInHex],
+  });
+
+  const { write, data, error, isError } = useContractWrite(config);
+  console.log(error, write, prepErr, config, prepData);
+  const {
+    data: receipt,
+    isLoading: pendingTx,
+    isSuccess,
+  } = useWaitForTransaction({
+    hash: data?.hash,
+  });
 
   return (
     <dialog className="modal font-outfit" open={openModal}>
@@ -77,7 +149,7 @@ const BuyTicketsModal = () => {
                 <tr className="border-slate-500">
                   <td>Wallet</td>
                   <td className="text-right text-golden/80">
-                    {formatEther(blazeBalance || 0n)
+                    {formatEther(blazeBalance?.[0]?.result || 0n)
                       .split(".")
                       .map((x, i) => (i == 0 ? x : x.substring(0, 2)))}
                     &nbsp;$BLZE
@@ -111,35 +183,54 @@ const BuyTicketsModal = () => {
               </tbody>
             </table>
             <div className="flex flex-row items-center justify-center gap-x-4 p-4">
-              <button
-                className="btn btn-secondary btn-sm min-w-[126px]"
-                onClick={() => {
-                  setView(1);
-                  setAllTickets(new Array(ticketAmount).fill([0, 0, 0, 0, 0]));
-                }}
-              >
-                Pick Numbers
-              </button>
-              <button
-                className="btn btn-secondary btn-sm min-w-[126px]"
-                onClick={() => {
-                  setView(1);
-                  const newTickets = new Array(ticketAmount)
-                    .fill([0, 0, 0, 0, 0])
-                    .map(() => {
-                      const ticket: TicketView = [0, 0, 0, 0, 0];
-                      for (let i = 0; i < 5; i++) {
-                        let num = Math.floor(Math.random() * 63);
-                        ticket[i] = num;
-                      }
-                      return ticket;
-                    });
+              {parseFloat(formatEther(blazeBalance?.[1]?.result || 0n)) >
+              roundInfo?.ticketPrice ? (
+                <>
+                  <button
+                    className="btn btn-secondary btn-sm min-w-[126px]"
+                    disabled={ticketAmount < 1}
+                    onClick={() => {
+                      setView(1);
+                      setAllTickets(
+                        new Array(ticketAmount).fill([0, 0, 0, 0, 0])
+                      );
+                    }}
+                  >
+                    Pick Numbers
+                  </button>
+                  <button
+                    className="btn btn-secondary btn-sm min-w-[126px]"
+                    disabled={ticketAmount < 1}
+                    onClick={() => {
+                      setView(1);
+                      const newTickets = new Array(ticketAmount)
+                        .fill([0, 0, 0, 0, 0])
+                        .map(() => {
+                          const ticket: TicketView = [0, 0, 0, 0, 0];
+                          for (let i = 0; i < 5; i++) {
+                            let num = Math.floor(Math.random() * 63);
+                            ticket[i] = num;
+                          }
+                          return ticket;
+                        });
 
-                  setAllTickets(newTickets);
-                }}
-              >
-                Lucky Dip
-              </button>
+                      setAllTickets(newTickets);
+                    }}
+                  >
+                    Lucky Dip
+                  </button>
+                </>
+              ) : (
+                <button
+                  className={classNames(
+                    "btn btn-secondary btn-sm min-w-[126px]",
+                    approvePendingTx && "loading btn-disabled"
+                  )}
+                  onClick={(e) => approveWrite?.()}
+                >
+                  Approve Game
+                </button>
+              )}
             </div>
             <p className="text-sm text-gray-500 text-justify whitespace-pre-wrap">
               <strong>Pick Numbers</strong>: sets all tickets to the value of
@@ -155,7 +246,16 @@ const BuyTicketsModal = () => {
         {view == 1 && (
           <>
             <div className="flex flex-row items-center justify-center">
-              <button className="btn btn-secondary">Buy Now</button>
+              <button
+                className="btn btn-secondary"
+                onClick={() => {
+                  if (!write) return;
+                  setView(3);
+                  write();
+                }}
+              >
+                Buy Now
+              </button>
             </div>
             <div className="flex flex-col gap-y-4 py-4">
               {allTickets.map((ticket, i) => {
@@ -242,10 +342,42 @@ const BuyTicketsModal = () => {
             </div>
           </>
         )}
-        {(view == 1 || view == 2) && (
+        {view == 3 && (
+          <div className="flex flex-col items-center justify-center">
+            <Image src={loadingGif} alt="Loading..." />
+            <div>
+              <a
+                className="text-golden underline"
+                href={`https://etherscan.io/tx/${data?.hash || ""}`}
+              >
+                <strong>Tx:</strong>{" "}
+                {data?.hash
+                  ? data?.hash.substring(0, 4) +
+                    "..." +
+                    data?.hash.substring(data?.hash.length - 4)
+                  : "Pending Signature"}
+              </a>
+            </div>
+
+            {isSuccess && (
+              <div className="text-green-600/80 text-3xl">Tickets Bought!</div>
+            )}
+            {isError && (
+              <div className="text-red-600/80">
+                {(error as BaseError)?.shortMessage}
+              </div>
+            )}
+          </div>
+        )}
+        {(view == 1 || view == 2 || (view == 3 && isError)) && (
           <button
             className="btn btn-outline btn-secondary w-full mt-4"
-            onClick={() => setView((v) => v - 1)}
+            onClick={() =>
+              setView((v) => {
+                if (v == 3) return 1;
+                return v - 1;
+              })
+            }
           >
             Back
           </button>
