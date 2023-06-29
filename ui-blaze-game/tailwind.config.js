@@ -5,7 +5,8 @@ module.exports = {
     themes:[
       {
         'mytheme':{
-          'accent': "#F94F59"
+          'accent': "#F94F59",
+          'secondary': "#E0B654" 
         }
       }
     ]
