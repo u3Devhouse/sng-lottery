@@ -18,6 +18,7 @@ import { WriteContract } from "@/components/wagmiComponents/WriteContract";
 import { WriteContractPrepared } from "@/components/wagmiComponents/WriteContractPrepared";
 
 import CurrentCard from "@/components/lottery/CurrentCard";
+import BuyTicketsModal from "@/components/lottery/BuyTicketsModal";
 
 export function Page() {
   return (
@@ -28,6 +29,7 @@ export function Page() {
       <section className="w-full py-4 flex flex-col items-center">
         <h2 className="underline font-outfit">Current Round</h2>
         <CurrentCard />
+        <BuyTicketsModal />
       </section>
     </>
   );
