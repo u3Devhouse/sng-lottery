@@ -21,6 +21,7 @@ import { useState } from "react";
 import { useImmer } from "use-immer";
 import { BiSolidEdit } from "react-icons/bi";
 import classNames from "classnames";
+import TicketNumber from "./TicketNumber";
 
 type TicketView = [number, number, number, number, number];
 
@@ -392,18 +393,3 @@ const BuyTicketsModal = () => {
 };
 
 export default BuyTicketsModal;
-
-const TicketNumber = (props: { number: number; size?: "sm" | "normal" }) => {
-  return (
-    <div
-      className={classNames(
-        "rounded-full bg-slate-700 border-2 border-golden text-white flex-row flex items-center justify-center font-bold",
-        props.size == "sm"
-          ? "w-8 h-8 text-sm"
-          : "w-8 h-8 md:w-12 md:h-12 md:text-lg text-base"
-      )}
-    >
-      {props.number}
-    </div>
-  );
-};
