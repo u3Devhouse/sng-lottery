@@ -6,8 +6,9 @@ import "dotenv/config"
 
 const pkey = process.env.DEPLOYER_TEST
 const sepolia_key = process.env.SEPOLIA_KEY
+const etherscan_key = process.env.ETHERSCAN_API_KEY
 
-if (!pkey || !sepolia_key) {
+if (!pkey || !sepolia_key || !etherscan_key) {
   throw new Error("Please set your keys in a .env file");
 }
 
@@ -31,6 +32,9 @@ const config: HardhatUserConfig = {
     currency: "USD",
     token: "ETH",
     excludeContracts: ["mock/", "VRFCoordinatorV2Mock", "ERC20"],
+  },
+  etherscan:{
+    apiKey: etherscan_key
   }
 };
 
