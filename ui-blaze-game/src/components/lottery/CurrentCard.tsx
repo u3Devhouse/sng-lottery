@@ -105,8 +105,8 @@ const Card = () => {
           <Image src={flyingTokens} alt="Flying tokens" />
         </div>
         <div className="flex flex-col items-center">
-          <div className="text-xl">
-            Prize amount:{" "}
+          <div className="text-xl whitespace-pre-wrap md:whitespace-normal text-center">
+            Prize amount:{" \n"}
             <span className="text-golden">
               ${" "}
               <span className="underline">
@@ -117,8 +117,8 @@ const Card = () => {
               </span>
             </span>
           </div>
-          <div className="py-4">
-            Tickets playing:{" "}
+          <div className="py-4 whitespace-pre-wrap md:whitespace-normal text-center">
+            Tickets playing:{" \n"}
             <span className="underline">
               {roundInfo?.[0]?.result?.[1].toLocaleString() || 0}
             </span>
