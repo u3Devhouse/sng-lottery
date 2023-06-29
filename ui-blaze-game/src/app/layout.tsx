@@ -18,7 +18,9 @@ const outfit = Outfit({
 });
 
 export const metadata = {
-  title: "wagmi",
+  title: "Blaze Game",
+  description: "Pick your numbers and win big!",
+  image: "/blaze_logo.png",
 };
 
 export default function RootLayout({
