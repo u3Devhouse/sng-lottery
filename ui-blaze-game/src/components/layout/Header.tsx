@@ -22,11 +22,6 @@ const Header = () => {
         <div>
           <Web3Button />
         </div>
-        <div className="md:hidden">
-          <button>
-            <HiMenuAlt2 className="text-4xl" />
-          </button>
-        </div>
       </nav>
     </header>
   );
