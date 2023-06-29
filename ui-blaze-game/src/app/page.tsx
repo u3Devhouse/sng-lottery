@@ -26,7 +26,7 @@ export function Page() {
       <h1 className="text-4xl font-outfit font-bold drop-shadow-md text-center my-14">
         Get your tickets & Play!
       </h1>
-      <section className="w-full py-4 flex flex-col items-center">
+      <section className="w-full py-4 px-4 flex flex-col items-center">
         <h2 className="underline font-outfit">Current Round</h2>
         <CurrentCard />
         <BuyTicketsModal />
