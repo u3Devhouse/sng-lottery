@@ -134,6 +134,7 @@ contract BlazeLottery is
     event StartRound(uint indexed _round);
     event UpkeeperSet(address indexed upkeeper, bool isUpkeeper);
     event RewardClaimed(address indexed _user, uint rewardAmount);
+    event RoundDurationSet(uint _oldDuration, uint _newDuration);
 
     //-------------------------------------------------------------------------
     //    Modifiers
@@ -335,6 +336,11 @@ contract BlazeLottery is
             rolloverAmount(currentRound, currentMatches);
             newRound(playingRound);
         }
+    }
+
+    function setRoundDuration(uint256 _newDuration) external onlyOwner {
+        emit RoundDurationSet(roundDuration, _newDuration);
+        roundDuration = _newDuration;
     }
 
     //-------------------------------------------------------------------------
