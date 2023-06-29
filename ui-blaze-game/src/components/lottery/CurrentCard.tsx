@@ -95,7 +95,7 @@ const Card = () => {
         <div>
           #{currentRound?.toString()} |{" "}
           {format(
-            new Date(Number(roundInfo?.[0]?.result?.[3]) * 1000),
+            new Date(Number(roundInfo?.[0]?.result?.[3] || 0) * 1000),
             "yyyy-MM-dd HH:mm"
           )}
         </div>
@@ -124,7 +124,7 @@ const Card = () => {
             </span>
           </div>
           {(roundInfo?.[1]?.result?.[2] || 0n) > 0 && (
-            <div className="py-4">
+            <div className="pb-4">
               Your Tickets:{" "}
               <span className="underline">
                 {roundInfo?.[1]?.result?.[2].toLocaleString() || 0}
