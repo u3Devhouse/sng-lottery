@@ -17,7 +17,7 @@ import { Web3Button } from "@/components/wagmiComponents/Web3Button";
 import { WriteContract } from "@/components/wagmiComponents/WriteContract";
 import { WriteContractPrepared } from "@/components/wagmiComponents/WriteContractPrepared";
 
-import Card from "@/components/lottery/Card";
+import CurrentCard from "@/components/lottery/CurrentCard";
 
 export function Page() {
   return (
@@ -27,7 +27,7 @@ export function Page() {
       </h1>
       <section className="w-full py-4 flex flex-col items-center">
         <h2 className="underline font-outfit">Current Round</h2>
-        <Card />
+        <CurrentCard />
       </section>
     </>
   );
