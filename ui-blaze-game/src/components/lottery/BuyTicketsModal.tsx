@@ -75,7 +75,6 @@ const BuyTicketsModal = () => {
           .join("")
     )
   );
-  console.log(ticketsInHex);
 
   // --------------------
   // Approve Blaze in lottery
@@ -115,12 +114,7 @@ const BuyTicketsModal = () => {
   });
 
   const { write, data, error, isError } = useContractWrite(config);
-  console.log(error, write, prepErr, config, prepData);
-  const {
-    data: receipt,
-    isLoading: pendingTx,
-    isSuccess,
-  } = useWaitForTransaction({
+  const { isSuccess } = useWaitForTransaction({
     hash: data?.hash,
   });
 
