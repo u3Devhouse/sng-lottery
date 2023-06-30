@@ -135,7 +135,13 @@ const BuyTicketsModal = () => {
               (view == 2 && "Pick Your Numbers") ||
               (view == 3 && "Buying Tickets")}
           </h4>
-          <Image src={flame} alt="Ticket Fire" height={55} width={55} />
+          <Image
+            src={flame}
+            alt="Ticket Fire"
+            height={55}
+            width={55}
+            style={{ transform: "scaleX(-1)" }}
+          />
         </div>
         {view == 0 && (
           <>
@@ -234,7 +240,7 @@ const BuyTicketsModal = () => {
                 <button
                   className={classNames(
                     "btn btn-secondary btn-sm min-w-[126px]",
-                    approvePendingTx && "loading btn-disabled"
+                    approvePendingTx && "loading btn-disabled loading-spinner"
                   )}
                   onClick={(e) => approveWrite?.()}
                 >
