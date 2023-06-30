@@ -2,7 +2,7 @@
 import Image from "next/image";
 import { useEffect, useState } from "react";
 import format from "date-fns/format";
-import { useSetAtom } from "jotai";
+import { useAtom, useSetAtom } from "jotai";
 // Contracts
 import { useAccount, useContractRead, useContractReads } from "wagmi";
 import { formatEther, toHex, zeroAddress } from "viem";
@@ -23,7 +23,7 @@ import TicketNumber from "./TicketNumber";
 const Card = () => {
   const [openMyTickets, setOpenMyTickets] = useState(false);
   const setOpenBuyTicketModal = useSetAtom(openBuyTicketModal);
-  const setBlazeInfo = useSetAtom(blazeInfo);
+  const [blazeData, setBlazeInfo] = useAtom(blazeInfo);
   const { address } = useAccount();
   const { data: currentRound, refetch: currentRoundRefetch } = useContractRead({
     address: lotteryContract,
@@ -55,6 +55,48 @@ const Card = () => {
         abi: priceFeedAbi,
         functionName: "latestRoundData",
         chainId: 1,
+      },
+      {
+        address: lotteryContract,
+        abi: lotteryAbi,
+        functionName: "distributionPercentages",
+        args: [0n],
+      },
+      {
+        address: lotteryContract,
+        abi: lotteryAbi,
+        functionName: "distributionPercentages",
+        args: [1n],
+      },
+      {
+        address: lotteryContract,
+        abi: lotteryAbi,
+        functionName: "distributionPercentages",
+        args: [2n],
+      },
+      {
+        address: lotteryContract,
+        abi: lotteryAbi,
+        functionName: "distributionPercentages",
+        args: [3n],
+      },
+      {
+        address: lotteryContract,
+        abi: lotteryAbi,
+        functionName: "distributionPercentages",
+        args: [4n],
+      },
+      {
+        address: lotteryContract,
+        abi: lotteryAbi,
+        functionName: "distributionPercentages",
+        args: [5n],
+      },
+      {
+        address: lotteryContract,
+        abi: lotteryAbi,
+        functionName: "distributionPercentages",
+        args: [6n],
       },
     ],
   });
@@ -154,7 +196,152 @@ const Card = () => {
           <div className="w-full flex flex-row items-center justify-center gap-x-2 collapse-title">
             Details
           </div>
-          <div className="collapse-content">content here</div>
+          <div className="collapse-content">
+            <table className="table font-outfit">
+              <thead>
+                <tr>
+                  <th>Match</th>
+                  <th>Amount BLZE</th>
+                  <th>Amount USD</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td className="">Match 1</td>
+                  <td className="text-right text-golden font-bold">
+                    {Number(
+                      (roundInfo?.[0].result?.[0] || 0n) *
+                        (roundInfo?.[4]?.result || 0n)
+                    ) / 100e18}
+                  </td>
+                  <td className="text-gray-500 text-right">
+                    {(
+                      (Number(
+                        (roundInfo?.[0].result?.[0] || 0n) *
+                          (roundInfo?.[4]?.result || 0n)
+                      ) *
+                        blazeData.price) /
+                      100e18
+                    ).toFixed(4)}
+                  </td>
+                </tr>
+                <tr>
+                  <td className="">Match 2</td>
+                  <td className="text-right text-golden font-bold">
+                    {Number(
+                      (roundInfo?.[0].result?.[0] || 0n) *
+                        (roundInfo?.[5]?.result || 0n)
+                    ) / 100e18}
+                  </td>
+                  <td className="text-gray-500 text-right">
+                    {(
+                      (Number(
+                        (roundInfo?.[0].result?.[0] || 0n) *
+                          (roundInfo?.[5]?.result || 0n)
+                      ) *
+                        blazeData.price) /
+                      100e18
+                    ).toFixed(4)}
+                  </td>
+                </tr>
+                <tr>
+                  <td className="">Match 3</td>
+                  <td className="text-right text-golden font-bold">
+                    {Number(
+                      (roundInfo?.[0].result?.[0] || 0n) *
+                        (roundInfo?.[6]?.result || 0n)
+                    ) / 100e18}
+                  </td>
+                  <td className="text-gray-500 text-right">
+                    {(
+                      (Number(
+                        (roundInfo?.[0].result?.[0] || 0n) *
+                          (roundInfo?.[6]?.result || 0n)
+                      ) *
+                        blazeData.price) /
+                      100e18
+                    ).toFixed(4)}
+                  </td>
+                </tr>
+                <tr>
+                  <td className="">Match 4</td>
+                  <td className="text-right text-golden font-bold">
+                    {Number(
+                      (roundInfo?.[0].result?.[0] || 0n) *
+                        (roundInfo?.[7]?.result || 0n)
+                    ) / 100e18}
+                  </td>
+                  <td className="text-gray-500 text-right">
+                    {(
+                      (Number(
+                        (roundInfo?.[0].result?.[0] || 0n) *
+                          (roundInfo?.[7]?.result || 0n)
+                      ) *
+                        blazeData.price) /
+                      100e18
+                    ).toFixed(4)}
+                  </td>
+                </tr>
+                <tr>
+                  <td className="">Match 5</td>
+                  <td className="text-right text-golden font-bold">
+                    {Number(
+                      (roundInfo?.[0].result?.[0] || 0n) *
+                        (roundInfo?.[8]?.result || 0n)
+                    ) / 100e18}
+                  </td>
+                  <td className="text-gray-500 text-right">
+                    {(
+                      (Number(
+                        (roundInfo?.[0].result?.[0] || 0n) *
+                          (roundInfo?.[8]?.result || 0n)
+                      ) *
+                        blazeData.price) /
+                      100e18
+                    ).toFixed(4)}
+                  </td>
+                </tr>
+                <tr>
+                  <td className="">Burn</td>
+                  <td className="text-right text-golden font-bold">
+                    {Number(
+                      (roundInfo?.[0].result?.[0] || 0n) *
+                        (roundInfo?.[9]?.result || 0n)
+                    ) / 100e18}
+                  </td>
+                  <td className="text-gray-500 text-right">
+                    {(
+                      (Number(
+                        (roundInfo?.[0].result?.[0] || 0n) *
+                          (roundInfo?.[9]?.result || 0n)
+                      ) *
+                        blazeData.price) /
+                      100e18
+                    ).toFixed(4)}
+                  </td>
+                </tr>
+                <tr>
+                  <td className="">Team</td>
+                  <td className="text-right text-golden font-bold">
+                    {Number(
+                      (roundInfo?.[0].result?.[0] || 0n) *
+                        (roundInfo?.[10]?.result || 0n)
+                    ) / 100e18}
+                  </td>
+                  <td className="text-gray-500 text-right">
+                    {(
+                      (Number(
+                        (roundInfo?.[0].result?.[0] || 0n) *
+                          (roundInfo?.[10]?.result || 0n)
+                      ) *
+                        blazeData.price) /
+                      100e18
+                    ).toFixed(4)}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
       <dialog className="modal" open={openMyTickets}>
