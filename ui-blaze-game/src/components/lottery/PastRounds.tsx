@@ -168,7 +168,7 @@ const PastRounds = () => {
               </tr>
             </thead>
             <tbody>
-              <tr>
+              {/* <tr>
                 <td className="text-sm">Match 1</td>
                 <td className="text-center text-golden font-bold">
                   {Number(matchesInfo?.[0]?.result?.[0] || 0n).toLocaleString()}
@@ -193,7 +193,7 @@ const PastRounds = () => {
                     ) / 100e18
                   ).toLocaleString()}
                 </td>
-              </tr>
+              </tr> */}
               <tr>
                 <td className="text-sm">Match 3</td>
                 <td className="text-center text-golden font-bold">
@@ -245,7 +245,7 @@ const PastRounds = () => {
                 </td>
               </tr>
               <tr>
-                <td className="">Team</td>
+                <td className="">Development</td>
                 <td className="text-golden text-right" colSpan={2}>
                   {(
                     Number(

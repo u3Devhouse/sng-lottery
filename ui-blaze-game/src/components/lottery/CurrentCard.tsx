@@ -206,7 +206,7 @@ const Card = () => {
                 </tr>
               </thead>
               <tbody>
-                <tr>
+                {/* <tr>
                   <td className="">Match 1</td>
                   <td className="text-right text-golden font-bold">
                     {(
@@ -247,7 +247,7 @@ const Card = () => {
                       100e18
                     ).toFixed(2)}
                   </td>
-                </tr>
+                </tr> */}
                 <tr>
                   <td className="">Match 3</td>
                   <td className="text-right text-golden font-bold">
@@ -333,7 +333,7 @@ const Card = () => {
                   </td>
                 </tr>
                 <tr>
-                  <td className="">Team</td>
+                  <td className="">Development</td>
                   <td className="text-right text-golden font-bold">
                     {(
                       Number(
