@@ -20,6 +20,7 @@ import flyingTokens from "@/../public/assets/flying_tokens.png";
 import { blazeInfo, openBuyTicketModal } from "@/data/atoms";
 import TicketNumber from "./TicketNumber";
 import { toEvenHexNoPrefix } from "@/utils/stringify";
+import classNames from "classnames";
 
 const Card = () => {
   const [openMyTickets, setOpenMyTickets] = useState(false);
@@ -102,6 +103,8 @@ const Card = () => {
     ],
   });
 
+  const roundIsActive = roundInfo?.[0]?.result?.[5] || false;
+
   useEffect(() => {
     setBlazeInfo({
       price:
@@ -121,20 +124,14 @@ const Card = () => {
     return () => clearInterval(interval);
   });
 
-  console.log(roundInfo);
-
   const ethPrice = Number(roundInfo?.[3]?.result?.[1] || 0n) / 1e8;
   const blazePrice =
     (Number(roundInfo?.[2]?.result?.[1] || 0) * ethPrice) /
     Number(roundInfo?.[2]?.result?.[0] || 1);
 
-  console.log({
-    ethPrice,
-    blazePrice,
-  });
   return (
     <>
-      <div className="card bg-secondary-bg rounded-3xl overflow-hidden border-golden border-4 md:max-w-md w-[300px] md:w-auto font-outfit">
+      <div className="card bg-secondary-bg rounded-3xl overflow-hidden border-golden border-4 md:max-w-md w-[300px] md:min-w-[450px] font-outfit">
         <div className="bg-golden text-black px-4 py-2 flex flex-row justify-between items-center text-sm">
           <div>Next Draw</div>
           <div>
@@ -181,15 +178,25 @@ const Card = () => {
             )}
             <div className="py-4">
               <button
-                className="btn btn-accent btn-sm text-white"
-                onClick={() => setOpenBuyTicketModal(true)}
+                className={classNames(
+                  "btn btn-accent btn-sm text-white",
+                  roundIsActive ? "" : "loading loading-spinner"
+                )}
+                onClick={() => {
+                  if (!roundIsActive) return;
+                  setOpenBuyTicketModal(true);
+                }}
               >
                 Buy Tickets
               </button>
             </div>
           </div>
           <div className="w-10 md:w-16">
-            <Image src={flyingTokens} alt="Flying tokens" />
+            <Image
+              src={flyingTokens}
+              alt="Flying tokens"
+              style={{ transform: "scaleX(-1)" }}
+            />
           </div>
         </div>
         <div className="w-full collapse collapse-arrow">
