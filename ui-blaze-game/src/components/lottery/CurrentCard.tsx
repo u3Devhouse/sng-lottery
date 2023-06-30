@@ -133,7 +133,7 @@ const Card = () => {
   });
   return (
     <>
-      <div className="card bg-secondary-bg rounded-3xl overflow-hidden border-golden border-4 max-w-md font-outfit">
+      <div className="card bg-secondary-bg rounded-3xl overflow-hidden border-golden border-4 md:max-w-md w-[300px] md:w-auto font-outfit">
         <div className="bg-golden text-black px-4 py-2 flex flex-row justify-between items-center text-sm">
           <div>Next Draw</div>
           <div>
@@ -145,7 +145,7 @@ const Card = () => {
           </div>
         </div>
         <div className="card-body flex flex-row items-center justify-evenly border-b-2 border-b-gray-400 pb-4">
-          <div className="w-16">
+          <div className="w-10 md:w-16">
             <Image src={flyingTokens} alt="Flying tokens" />
           </div>
           <div className="flex flex-col items-center">
@@ -187,7 +187,7 @@ const Card = () => {
               </button>
             </div>
           </div>
-          <div className="w-16">
+          <div className="w-10 md:w-16">
             <Image src={flyingTokens} alt="Flying tokens" />
           </div>
         </div>
@@ -196,7 +196,7 @@ const Card = () => {
           <div className="w-full flex flex-row items-center justify-center gap-x-2 collapse-title">
             Details
           </div>
-          <div className="collapse-content">
+          <div className="collapse-content overflow-auto">
             <table className="table font-outfit">
               <thead>
                 <tr>
@@ -209,10 +209,12 @@ const Card = () => {
                 <tr>
                   <td className="">Match 1</td>
                   <td className="text-right text-golden font-bold">
-                    {Number(
-                      (roundInfo?.[0].result?.[0] || 0n) *
-                        (roundInfo?.[4]?.result || 0n)
-                    ) / 100e18}
+                    {(
+                      Number(
+                        (roundInfo?.[0].result?.[0] || 0n) *
+                          (roundInfo?.[4]?.result || 0n)
+                      ) / 100e18
+                    ).toLocaleString()}
                   </td>
                   <td className="text-gray-500 text-right">
                     {(
@@ -222,16 +224,18 @@ const Card = () => {
                       ) *
                         blazeData.price) /
                       100e18
-                    ).toFixed(4)}
+                    ).toFixed(2)}
                   </td>
                 </tr>
                 <tr>
                   <td className="">Match 2</td>
                   <td className="text-right text-golden font-bold">
-                    {Number(
-                      (roundInfo?.[0].result?.[0] || 0n) *
-                        (roundInfo?.[5]?.result || 0n)
-                    ) / 100e18}
+                    {(
+                      Number(
+                        (roundInfo?.[0].result?.[0] || 0n) *
+                          (roundInfo?.[5]?.result || 0n)
+                      ) / 100e18
+                    ).toLocaleString()}
                   </td>
                   <td className="text-gray-500 text-right">
                     {(
@@ -241,16 +245,18 @@ const Card = () => {
                       ) *
                         blazeData.price) /
                       100e18
-                    ).toFixed(4)}
+                    ).toFixed(2)}
                   </td>
                 </tr>
                 <tr>
                   <td className="">Match 3</td>
                   <td className="text-right text-golden font-bold">
-                    {Number(
-                      (roundInfo?.[0].result?.[0] || 0n) *
-                        (roundInfo?.[6]?.result || 0n)
-                    ) / 100e18}
+                    {(
+                      Number(
+                        (roundInfo?.[0].result?.[0] || 0n) *
+                          (roundInfo?.[6]?.result || 0n)
+                      ) / 100e18
+                    ).toLocaleString()}
                   </td>
                   <td className="text-gray-500 text-right">
                     {(
@@ -260,16 +266,18 @@ const Card = () => {
                       ) *
                         blazeData.price) /
                       100e18
-                    ).toFixed(4)}
+                    ).toFixed(2)}
                   </td>
                 </tr>
                 <tr>
                   <td className="">Match 4</td>
                   <td className="text-right text-golden font-bold">
-                    {Number(
-                      (roundInfo?.[0].result?.[0] || 0n) *
-                        (roundInfo?.[7]?.result || 0n)
-                    ) / 100e18}
+                    {(
+                      Number(
+                        (roundInfo?.[0].result?.[0] || 0n) *
+                          (roundInfo?.[7]?.result || 0n)
+                      ) / 100e18
+                    ).toLocaleString()}
                   </td>
                   <td className="text-gray-500 text-right">
                     {(
@@ -279,16 +287,18 @@ const Card = () => {
                       ) *
                         blazeData.price) /
                       100e18
-                    ).toFixed(4)}
+                    ).toFixed(2)}
                   </td>
                 </tr>
                 <tr>
                   <td className="">Match 5</td>
                   <td className="text-right text-golden font-bold">
-                    {Number(
-                      (roundInfo?.[0].result?.[0] || 0n) *
-                        (roundInfo?.[8]?.result || 0n)
-                    ) / 100e18}
+                    {(
+                      Number(
+                        (roundInfo?.[0].result?.[0] || 0n) *
+                          (roundInfo?.[8]?.result || 0n)
+                      ) / 100e18
+                    ).toLocaleString()}
                   </td>
                   <td className="text-gray-500 text-right">
                     {(
@@ -298,16 +308,18 @@ const Card = () => {
                       ) *
                         blazeData.price) /
                       100e18
-                    ).toFixed(4)}
+                    ).toFixed(2)}
                   </td>
                 </tr>
                 <tr>
                   <td className="">Burn</td>
                   <td className="text-right text-golden font-bold">
-                    {Number(
-                      (roundInfo?.[0].result?.[0] || 0n) *
-                        (roundInfo?.[9]?.result || 0n)
-                    ) / 100e18}
+                    {(
+                      Number(
+                        (roundInfo?.[0].result?.[0] || 0n) *
+                          (roundInfo?.[9]?.result || 0n)
+                      ) / 100e18
+                    ).toLocaleString()}
                   </td>
                   <td className="text-gray-500 text-right">
                     {(
@@ -317,16 +329,18 @@ const Card = () => {
                       ) *
                         blazeData.price) /
                       100e18
-                    ).toFixed(4)}
+                    ).toFixed(2)}
                   </td>
                 </tr>
                 <tr>
                   <td className="">Team</td>
                   <td className="text-right text-golden font-bold">
-                    {Number(
-                      (roundInfo?.[0].result?.[0] || 0n) *
-                        (roundInfo?.[10]?.result || 0n)
-                    ) / 100e18}
+                    {(
+                      Number(
+                        (roundInfo?.[0].result?.[0] || 0n) *
+                          (roundInfo?.[10]?.result || 0n)
+                      ) / 100e18
+                    ).toLocaleString()}
                   </td>
                   <td className="text-gray-500 text-right">
                     {(
@@ -336,7 +350,7 @@ const Card = () => {
                       ) *
                         blazeData.price) /
                       100e18
-                    ).toFixed(4)}
+                    ).toFixed(2)}
                   </td>
                 </tr>
               </tbody>
