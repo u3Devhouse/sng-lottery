@@ -103,6 +103,8 @@ contract BlazeLottery is
     // 0% Match 1
     // 20% Burns
     // 5%  Team
+    address public constant DEAD_WALLET =
+        0x000000000000000000000000000000000000dEaD;
     //-------------------------------------------------------------------------
     //    VRF Config Variables
     //-------------------------------------------------------------------------
@@ -481,7 +483,9 @@ contract BlazeLottery is
         uint burnAmount = (distributionPercentages[5] * currentPot) / 100;
         // Send the appropriate percent to the team wallet
         uint teamPot = (distributionPercentages[6] * currentPot) / 100;
-        currency.burn(burnAmount);
+        try currency.burn(burnAmount) {} catch {
+            currency.transfer(DEAD_WALLET, burnAmount);
+        }
         bool succ = currency.transfer(teamWallet, teamPot);
         if (!succ) revert BlazeLot__TransferFailed();
         nextRound.pot += nextPot;
