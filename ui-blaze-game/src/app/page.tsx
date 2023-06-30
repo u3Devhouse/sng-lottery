@@ -24,15 +24,15 @@ import PastRounds from "@/components/lottery/PastRounds";
 const Page = () => {
   return (
     <>
-      <h1 className="text-4xl font-outfit font-bold drop-shadow-md text-center my-14">
+      <h1 className="text-4xl font-outfit font-bold drop-shadow-md text-center my-10">
         Get your tickets & Play!
       </h1>
-      <section className="w-full py-4 px-4 flex flex-col items-center">
-        <h2 className="underline font-outfit">Current Round</h2>
+      <section className="w-full pb-4 px-4 flex flex-col items-center">
+        <h2 className="underline font-outfit pb-4.">Current Round</h2>
         <CurrentCard />
       </section>
       <section className="flex flex-col items-center">
-        <h2 className="underline font-outfit">Past Rounds</h2>
+        <h2 className="underline font-outfit py-4">Past Rounds</h2>
         <PastRounds />
       </section>
       <BuyTicketsModal />
