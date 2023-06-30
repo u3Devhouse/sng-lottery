@@ -30,7 +30,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className={`${roboto.className} ${outfit.variable}`}>
-      <body className="main-bg min-h-screen relative">
+      <body className="main-bg min-h-screen relative overflow-x-hidden">
         <div className="-z-10 absolute top-0 left-0 w-screen h-full">
           <Image src={bgImage} alt="background Flare" placeholder="blur" fill />
         </div>
