@@ -1,27 +1,27 @@
-import { Account } from "@/components/wagmiComponents/Account";
-import { Balance } from "@/components/wagmiComponents/Balance";
-import { BlockNumber } from "@/components/wagmiComponents/BlockNumber";
-import { Connected } from "@/components/wagmiComponents/Connected";
-import { NetworkSwitcher } from "@/components/wagmiComponents/NetworkSwitcher";
-import { ReadContract } from "@/components/wagmiComponents/ReadContract";
-import { ReadContracts } from "@/components/wagmiComponents/ReadContracts";
-import { ReadContractsInfinite } from "@/components/wagmiComponents/ReadContractsInfinite";
-import { SendTransaction } from "@/components/wagmiComponents/SendTransaction";
-import { SendTransactionPrepared } from "@/components/wagmiComponents/SendTransactionPrepared";
-import { SignMessage } from "@/components/wagmiComponents/SignMessage";
-import { SignTypedData } from "@/components/wagmiComponents/SignTypedData";
-import { Token } from "@/components/wagmiComponents/Token";
-import { WatchContractEvents } from "@/components/wagmiComponents/WatchContractEvents";
-import { WatchPendingTransactions } from "@/components/wagmiComponents/WatchPendingTransactions";
-import { Web3Button } from "@/components/wagmiComponents/Web3Button";
-import { WriteContract } from "@/components/wagmiComponents/WriteContract";
-import { WriteContractPrepared } from "@/components/wagmiComponents/WriteContractPrepared";
+// import { Account } from "@/components/wagmiComponents/Account";
+// import { Balance } from "@/components/wagmiComponents/Balance";
+// import { BlockNumber } from "@/components/wagmiComponents/BlockNumber";
+// import { Connected } from "@/components/wagmiComponents/Connected";
+// import { NetworkSwitcher } from "@/components/wagmiComponents/NetworkSwitcher";
+// import { ReadContract } from "@/components/wagmiComponents/ReadContract";
+// import { ReadContracts } from "@/components/wagmiComponents/ReadContracts";
+// import { ReadContractsInfinite } from "@/components/wagmiComponents/ReadContractsInfinite";
+// import { SendTransaction } from "@/components/wagmiComponents/SendTransaction";
+// import { SendTransactionPrepared } from "@/components/wagmiComponents/SendTransactionPrepared";
+// import { SignMessage } from "@/components/wagmiComponents/SignMessage";
+// import { SignTypedData } from "@/components/wagmiComponents/SignTypedData";
+// import { Token } from "@/components/wagmiComponents/Token";
+// import { WatchContractEvents } from "@/components/wagmiComponents/WatchContractEvents";
+// import { WatchPendingTransactions } from "@/components/wagmiComponents/WatchPendingTransactions";
+// import { Web3Button } from "@/components/wagmiComponents/Web3Button";
+// import { WriteContract } from "@/components/wagmiComponents/WriteContract";
+// import { WriteContractPrepared } from "@/components/wagmiComponents/WriteContractPrepared";
 
 import CurrentCard from "@/components/lottery/CurrentCard";
 import BuyTicketsModal from "@/components/lottery/BuyTicketsModal";
 import PastRounds from "@/components/lottery/PastRounds";
 
-export function Page() {
+const Page = () => {
   return (
     <>
       <h1 className="text-4xl font-outfit font-bold drop-shadow-md text-center my-14">
@@ -38,6 +38,6 @@ export function Page() {
       <BuyTicketsModal />
     </>
   );
-}
+};
 
 export default Page;
