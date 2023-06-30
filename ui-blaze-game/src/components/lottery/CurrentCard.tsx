@@ -19,6 +19,7 @@ import flyingTokens from "@/../public/assets/flying_tokens.png";
 //  Data
 import { blazeInfo, openBuyTicketModal } from "@/data/atoms";
 import TicketNumber from "./TicketNumber";
+import { toEvenHexNoPrefix } from "@/utils/stringify";
 
 const Card = () => {
   const [openMyTickets, setOpenMyTickets] = useState(false);
@@ -149,8 +150,8 @@ const Card = () => {
             <Image src={flyingTokens} alt="Flying tokens" />
           </div>
           <div className="flex flex-col items-center">
-            <div className="text-xl whitespace-pre-wrap md:whitespace-normal text-center">
-              Prize amount:{" \n"}
+            <div className="text-xl whitespace-pre-wrap text-center">
+              Prize amount:{"\n"}
               <span className="text-golden">
                 ${" "}
                 <span className="underline">
@@ -365,8 +366,7 @@ const Card = () => {
           </h4>
           <div className="flex flex-col items-center justify-center gap-3">
             {roundInfo?.[1]?.result?.[0]?.map((ticket, index) => {
-              const hexNum = toHex(ticket).replace("0x", "");
-              const evenHex = hexNum.length % 2 === 0 ? hexNum : "0" + hexNum;
+              const evenHex = toEvenHexNoPrefix(ticket);
               return (
                 <div
                   key={`bought-ticket-index-${index}`}
