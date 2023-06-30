@@ -15,9 +15,14 @@ import {
   useToken,
   useWaitForTransaction,
 } from "wagmi";
-import { blazeToken, lotteryAbi, lotteryContract } from "@/data/contracts";
+import {
+  blazeToken,
+  lotteryAbi,
+  lotteryContract,
+  mockToken,
+} from "@/data/contracts";
 import { BaseError, formatEther, parseEther, toHex, zeroAddress } from "viem";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useImmer } from "use-immer";
 import { BiSolidEdit } from "react-icons/bi";
 import classNames from "classnames";
@@ -27,17 +32,17 @@ type TicketView = [number, number, number, number, number];
 
 const BuyTicketsModal = () => {
   const { address } = useAccount();
-  const { data: tokenData } = useToken({ address: blazeToken });
-  const { data: blazeBalance } = useContractReads({
+  const { data: tokenData } = useToken({ address: blazeToken, chainId: 1 });
+  const { data: blazeBalance, refetch: balanceRefetch } = useContractReads({
     contracts: [
       {
-        address: "0x280100b6bEC80e354B970F48fadff7c9a455aCC0", //blazeToken,
+        address: mockToken, //blazeToken,
         abi: erc20ABI,
         functionName: "balanceOf",
         args: [address || zeroAddress],
       },
       {
-        address: "0x280100b6bEC80e354B970F48fadff7c9a455aCC0", //blazeToken,
+        address: mockToken, //blazeToken,
         abi: erc20ABI,
         functionName: "allowance",
         args: [address || zeroAddress, lotteryContract],
@@ -76,14 +81,13 @@ const BuyTicketsModal = () => {
   // Approve Blaze in lottery
   // --------------------
   const { config: approveConfig } = usePrepareContractWrite({
-    address: blazeToken,
+    address: mockToken, //blazeToken,
     abi: erc20ABI,
     functionName: "approve",
     args: [
       lotteryContract,
       tokenData?.totalSupply.value || parseEther("10000000000000000000"),
     ],
-    chainId: 1,
   });
   const { write: approveWrite, data: approveTxData } =
     useContractWrite(approveConfig);
@@ -92,6 +96,10 @@ const BuyTicketsModal = () => {
     isLoading: approvePendingTx,
     isSuccess: approveSuccess,
   } = useWaitForTransaction({ hash: approveTxData?.hash });
+
+  useEffect(() => {
+    if (approveSuccess) balanceRefetch();
+  }, [approveSuccess, balanceRefetch]);
   // --------------------
   // BUY TICKETS
   // --------------------
@@ -144,15 +152,16 @@ const BuyTicketsModal = () => {
                 <tr className="border-slate-500">
                   <td>Ticket Price</td>
                   <td className="text-right text-golden/80">
-                    {roundInfo.ticketPrice}&nbsp;$BLZE
+                    {roundInfo.ticketPrice.toLocaleString()}&nbsp;$BLZE
                   </td>
                 </tr>
                 <tr className="border-slate-500">
                   <td>Wallet</td>
                   <td className="text-right text-golden/80">
-                    {formatEther(blazeBalance?.[0]?.result || 0n)
-                      .split(".")
-                      .map((x, i) => (i == 0 ? x : x.substring(0, 2)))}
+                    {(
+                      (blazeBalance?.[0]?.result || 0n) /
+                      10n ** 15n
+                    ).toLocaleString()}
                     &nbsp;$BLZE
                   </td>
                 </tr>
@@ -177,7 +186,7 @@ const BuyTicketsModal = () => {
                 <tr className="border-slate-500 text-gray-500">
                   <td>Total</td>
                   <td className="text-right text-golden">
-                    {ticketAmount * roundInfo.ticketPrice}
+                    {(ticketAmount * roundInfo.ticketPrice).toLocaleString()}
                     &nbsp;$BLZE
                   </td>
                 </tr>
