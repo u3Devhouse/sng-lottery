@@ -16,7 +16,7 @@ const HowTo = () => {
                     height={50}
                 // style={{ transform: "scaleX(-1)" }}
                 />
-                <p>Choose amount of tickets</p>
+                <p className="text-white text-base">Choose amount of tickets</p>
             </div>
             <div className={stepContainer}>
                 <Image
@@ -26,7 +26,7 @@ const HowTo = () => {
                     height={50}
                 // style={{ transform: "scaleX(-1)" }}
                 />
-                <p>Choose your lucky number</p>
+                <p className="text-white text-base">Choose your lucky number</p>
 
             </div>
             <div className={stepContainer}>
@@ -37,7 +37,7 @@ const HowTo = () => {
                     height={50}
                 // style={{ transform: "scaleX(1), scaleY(0.5)" }}
                 />
-                <p>Claim any rewards</p>
+                <p className="text-white text-base">Claim any rewards</p>
 
             </div>
 
