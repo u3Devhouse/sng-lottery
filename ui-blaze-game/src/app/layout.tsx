@@ -18,7 +18,7 @@ const outfit = Outfit({
 });
 
 export const metadata = {
-  title: "Blaze Game",
+  title: "Blaze Jackpot",
   description: "Pick your numbers and win big!",
   image: "/blaze_logo.png",
 };

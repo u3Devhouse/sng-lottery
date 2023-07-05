@@ -16,7 +16,7 @@ const Header = () => {
         >
           <Image src="/blaze_logo.png" alt="Logo" width={60} height={60} />
           <div className="text-2xl italic font-bold text-primary-text uppercase">
-            Blaze Lottery
+            Blaze Jackpot
           </div>
         </Link>
         <div>
