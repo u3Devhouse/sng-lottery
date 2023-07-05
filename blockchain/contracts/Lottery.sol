@@ -20,8 +20,6 @@ import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@chainlink/contracts/src/v0.8/AutomationCompatible.sol";
 import "@chainlink/contracts/src/v0.8/VRFConsumerBaseV2.sol";
 import "@chainlink/contracts/src/v0.8/interfaces/VRFCoordinatorV2Interface.sol";
-// TODO REMOVE THIS AFTER DEBUGGING AND TESTING
-import "hardhat/console.sol";
 
 //-------------------------------------------------------------------------
 //    INTERFACES
@@ -357,7 +355,7 @@ contract BlazeLottery is
         if (round < currentRound || round == 0) revert BlazeLot__InvalidRound();
         currency.transferFrom(msg.sender, address(this), amount);
         roundInfo[round].pot += amount;
-        emit AddToPot(msg.sender, round, amount);
+        emit AddToPot(msg.sender, amount, round);
     }
 
     /**
