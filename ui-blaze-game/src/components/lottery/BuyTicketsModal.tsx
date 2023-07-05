@@ -15,12 +15,7 @@ import {
   useToken,
   useWaitForTransaction,
 } from "wagmi";
-import {
-  blazeToken,
-  lotteryAbi,
-  lotteryContract,
-  mockToken,
-} from "@/data/contracts";
+import { blazeToken, lotteryAbi, lotteryContract } from "@/data/contracts";
 import { BaseError, formatEther, parseEther, toHex, zeroAddress } from "viem";
 import { useEffect, useState } from "react";
 import { useImmer } from "use-immer";
@@ -36,13 +31,13 @@ const BuyTicketsModal = () => {
   const { data: blazeBalance, refetch: balanceRefetch } = useContractReads({
     contracts: [
       {
-        address: mockToken, //blazeToken,
+        address: blazeToken, //blazeToken,
         abi: erc20ABI,
         functionName: "balanceOf",
         args: [address || zeroAddress],
       },
       {
-        address: mockToken, //blazeToken,
+        address: blazeToken, //blazeToken,
         abi: erc20ABI,
         functionName: "allowance",
         args: [address || zeroAddress, lotteryContract],
@@ -80,7 +75,7 @@ const BuyTicketsModal = () => {
   // Approve Blaze in lottery
   // --------------------
   const { config: approveConfig } = usePrepareContractWrite({
-    address: mockToken, //blazeToken,
+    address: blazeToken, //blazeToken,
     abi: erc20ABI,
     functionName: "approve",
     args: [
