@@ -357,7 +357,7 @@ contract BlazeLottery is
         if (round < currentRound || round == 0) revert BlazeLot__InvalidRound();
         currency.transferFrom(msg.sender, address(this), amount);
         roundInfo[round].pot += amount;
-        emit AddToPot(msg.sender, amount, round);
+        emit AddToPot(msg.sender, round, amount);
     }
 
     /**
