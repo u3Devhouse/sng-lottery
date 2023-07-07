@@ -7,7 +7,7 @@ import howto3 from "@/../public/assets/Rectangle 9.png";
 
 const HowTo = () => {
   return (
-    <div className="flex justify-evenly flex-col md:flex-row mt-12 items-center px-2 font-outfit gap-4">
+    <div className="flex justify-evenly flex-row flex-wrap mt-12 items-center px-2 font-outfit gap-4">
       <div className="flex flex-col items-center  max-w-xs bg-[#39253eb2] p-4 rounded-lg w-screen md:w-[320px]">
         <Image
           src={howto1}
