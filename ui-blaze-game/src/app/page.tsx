@@ -21,6 +21,7 @@ import CurrentCard from "@/components/lottery/CurrentCard";
 import BuyTicketsModal from "@/components/lottery/BuyTicketsModal";
 import PastRounds from "@/components/lottery/PastRounds";
 import HowTo from "@/components/layout/HowTo";
+import OwnerCard from "@/components/owner/OwnerCard";
 
 const Page = () => {
   return (
@@ -37,7 +38,12 @@ const Page = () => {
         <PastRounds />
       </section>
       <section className="flex flex-col items-center">
-        <h2 className="text-4xl font-outfit font-bold drop-shadow-md text-center my-10">HOW TO PLAY</h2>
+        <OwnerCard />
+      </section>
+      <section className="flex flex-col items-center">
+        <h2 className="text-4xl font-outfit font-bold drop-shadow-md text-center my-10">
+          HOW TO PLAY
+        </h2>
         <HowTo />
       </section>
       <BuyTicketsModal />

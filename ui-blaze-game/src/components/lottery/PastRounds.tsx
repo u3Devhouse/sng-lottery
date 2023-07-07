@@ -27,7 +27,7 @@ const PastRounds = () => {
   const blazeLott = useAtomValue(blazeInfo);
   const [openMyTickets, setOpenMyTickets] = useState(false);
   const [selectedRound, setSelectedRound] = useState(
-    blazeLott.currentRound - 1
+    blazeLott.currentRound > 1 ? blazeLott.currentRound - 1 : 0
   );
 
   const { data } = useContractRead({
@@ -142,7 +142,9 @@ const PastRounds = () => {
   const maxPrev = blazeLott.currentRound - 1;
 
   useEffect(() => {
-    setSelectedRound(blazeLott.currentRound - 1);
+    setSelectedRound(() =>
+      blazeLott.currentRound > 1 ? blazeLott.currentRound - 1 : 0
+    );
   }, [blazeLott.currentRound, setSelectedRound]);
 
   const { config } = usePrepareContractWrite({
