@@ -339,7 +339,7 @@ const PastRounds = () => {
                   <td className="text-sm">Match 3</td>
                   <td className="text-center text-golden font-bold">
                     {Number(
-                      matchesInfo?.[0]?.result?.[2] || 0n
+                      matchesInfo?.[0]?.result?.[3] || 0n
                     ).toLocaleString()}
                   </td>
                   <td className="text-gray-500 text-right">
@@ -382,10 +382,10 @@ const PastRounds = () => {
                 </tr>
                 <tr>
                   <td className="">Burn</td>
-                  <td className="text-golden text-right" colSpan={2}>
+                  <td className="text-red-500 text-right" colSpan={2}>
                     {(
                       Number(
-                        (data?.[0] || 0n) * (matchesInfo?.[5]?.result || 0n)
+                        (data?.[0] || 0n) * (matchesInfo?.[6]?.result || 0n)
                       ) / 100e18
                     ).toLocaleString()}
                     &nbsp;BLZE
@@ -396,7 +396,7 @@ const PastRounds = () => {
                   <td className="text-golden text-right" colSpan={2}>
                     {(
                       Number(
-                        (data?.[0] || 0n) * (matchesInfo?.[6]?.result || 0n)
+                        (data?.[0] || 0n) * (matchesInfo?.[7]?.result || 0n)
                       ) / 100e18
                     ).toLocaleString()}
                     &nbsp;BLZE
