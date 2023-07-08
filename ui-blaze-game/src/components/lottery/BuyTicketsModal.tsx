@@ -189,7 +189,7 @@ const BuyTicketsModal = () => {
             </table>
             <div className="flex flex-row items-center justify-center gap-x-4 p-4">
               {parseFloat(formatEther(blazeBalance?.[1]?.result || 0n)) >
-              roundInfo?.ticketPrice ? (
+              (ticketAmount || 1) * roundInfo?.ticketPrice ? (
                 <>
                   <button
                     className="btn btn-secondary btn-sm min-w-[126px]"
