@@ -1,6 +1,6 @@
 "use client";
 import Image from "next/image";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import format from "date-fns/format";
 import { useAtom, useSetAtom } from "jotai";
 // Contracts
@@ -20,6 +20,7 @@ import flyingTokens from "@/../public/assets/flying_tokens.png";
 import { blazeInfo, openBuyTicketModal } from "@/data/atoms";
 import TicketNumber from "./TicketNumber";
 import { toEvenHexNoPrefix } from "@/utils/stringify";
+import { GrView } from "react-icons/gr";
 import classNames from "classnames";
 
 const Card = () => {
@@ -129,6 +130,8 @@ const Card = () => {
     (Number(roundInfo?.[2]?.result?.[1] || 0) * ethPrice) /
     Number(roundInfo?.[2]?.result?.[0] || 1);
 
+  const detailCollapseRef = useRef<HTMLInputElement>(null);
+
   return (
     <>
       <div className="card bg-secondary-bg rounded-3xl overflow-hidden border-golden border-4 md:max-w-md w-[300px] md:min-w-[450px] font-outfit">
@@ -148,7 +151,19 @@ const Card = () => {
           </div>
           <div className="flex flex-col items-center">
             <div className="text-xl whitespace-pre-wrap text-center">
-              Prize amount:{"\n"}
+              Jackpot Pool
+              <sup
+                className="cursor-pointer"
+                onClick={() => {
+                  detailCollapseRef.current?.click();
+                  detailCollapseRef.current?.scrollIntoView({
+                    behavior: "smooth",
+                  });
+                }}
+              >
+                *
+              </sup>
+              {"\n"}
               <span className="text-golden">
                 ${" "}
                 <span className="underline">
@@ -160,19 +175,20 @@ const Card = () => {
               </span>
             </div>
             <div className="py-4 whitespace-pre-wrap md:whitespace-normal text-center">
-              Tickets playing:{" \n"}
+              Tickets in Pool:{" \n"}
               <span className="underline">
                 {roundInfo?.[0]?.result?.[1].toLocaleString() || 0}
               </span>
             </div>
             {(roundInfo?.[1]?.result?.[2] || 0n) > 0 && (
-              <div className="pb-4">
-                Your Tickets:{" "}
+              <div className="pb-4 whitespace-pre-wrap flex flex-col items-center">
+                <div>View Tickets:</div>
                 <button
-                  className="underline"
+                  className="btn btn-secondary btn-sm mt-2"
                   onClick={() => setOpenMyTickets(true)}
                 >
                   {roundInfo?.[1]?.result?.[2].toLocaleString() || 0}
+                  <GrView className="text-green-500" />
                 </button>
               </div>
             )}
@@ -200,8 +216,8 @@ const Card = () => {
           </div>
         </div>
         <div className="w-full collapse collapse-arrow">
-          <input type="checkbox" />
-          <div className="w-full flex flex-row items-center justify-center gap-x-2 collapse-title">
+          <input type="checkbox" ref={detailCollapseRef} />
+          <div className="w-full text-center pl-[48px] collapse-title">
             Details
           </div>
           <div className="collapse-content overflow-auto">
@@ -320,8 +336,8 @@ const Card = () => {
                   </td>
                 </tr>
                 <tr>
-                  <td className="">Burn</td>
-                  <td className="text-right text-golden font-bold">
+                  <td className="">BLZE Burn</td>
+                  <td className="text-right text-red-500 font-bold">
                     {(
                       Number(
                         (roundInfo?.[0].result?.[0] || 0n) *

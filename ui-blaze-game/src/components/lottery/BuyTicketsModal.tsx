@@ -185,6 +185,17 @@ const BuyTicketsModal = () => {
                     &nbsp;$BLZE
                   </td>
                 </tr>
+                <tr className="border-slate-500 text-gray-500">
+                  <td>Total USD</td>
+                  <td className="text-right text-primary">
+                    {(
+                      ticketAmount *
+                      roundInfo.ticketPrice *
+                      roundInfo.price
+                    ).toLocaleString()}
+                    &nbsp;$USD
+                  </td>
+                </tr>
               </tbody>
             </table>
             <div className="flex flex-row items-center justify-center gap-x-4 p-4">
