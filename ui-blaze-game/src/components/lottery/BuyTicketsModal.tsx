@@ -92,7 +92,10 @@ const BuyTicketsModal = () => {
   } = useWaitForTransaction({ hash: approveTxData?.hash });
 
   useEffect(() => {
-    if (approveSuccess) balanceRefetch();
+    if (approveSuccess) {
+      const interval = setInterval(balanceRefetch, 15000);
+      return () => clearInterval(interval);
+    }
   }, [approveSuccess, balanceRefetch]);
   // --------------------
   // BUY TICKETS
@@ -155,7 +158,7 @@ const BuyTicketsModal = () => {
                   <td className="text-right text-golden/80">
                     {(
                       (blazeBalance?.[0]?.result || 0n) /
-                      10n ** 15n
+                      10n ** 18n
                     ).toLocaleString()}
                     &nbsp;$BLZE
                   </td>
