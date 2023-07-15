@@ -134,7 +134,7 @@ const Card = () => {
 
   return (
     <>
-      <div className="card bg-secondary-bg rounded-3xl overflow-hidden border-golden border-4 md:max-w-md w-[300px] md:min-w-[450px] font-outfit">
+      <div className="card bg-secondary-bg rounded-3xl overflow-hidden border-golden-dark border-4 md:max-w-md w-[300px] md:min-w-[450px] font-outfit">
         <div className="bg-golden text-black px-4 py-2 flex flex-row justify-between items-center text-sm">
           <div>Next Draw</div>
           <div>
@@ -151,7 +151,7 @@ const Card = () => {
           </div>
           <div className="flex flex-col items-center">
             <div className="text-xl whitespace-pre-wrap text-center">
-              Jackpot Pool
+              Prize Amount
               <sup
                 className="cursor-pointer"
                 onClick={() => {

@@ -22,7 +22,7 @@ module.exports = {
         'secondary-bg' : "#1D152B",
         'primary-text': "#D6B159",
         'golden': "#E0B654",
-        'golden-dark': "#8F763B",
+        'golden-dark': "#D2A64C",
       },
       fontFamily:{
         'outfit': ['var(--font-outfit)'],

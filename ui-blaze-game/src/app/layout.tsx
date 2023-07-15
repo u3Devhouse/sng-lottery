@@ -29,11 +29,22 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`${roboto.className} ${outfit.variable}`}>
-      <body className="main-bg min-h-screen relative w-[100vw]">
-        <div className="-z-10 absolute top-0 left-0 w-screen h-full">
-          <Image src={bgImage} alt="background Flare" placeholder="blur" fill />
-        </div>
+    <html
+      lang="en"
+      className={`${roboto.className} ${outfit.variable} main-bg`}
+    >
+      <body className="main-bg relative w-[100vw]">
+        <video
+          autoPlay
+          playsInline
+          muted
+          loop
+          preload="auto"
+          className="w-full fixed top-0 h-full object-cover -z-10 brightness-50"
+        >
+          <source src="/bg_vid.mp4" type="video/mp4" />
+          Your browser does not support the video tag.
+        </video>
         <Providers>
           <Header />
           {children}

@@ -3,7 +3,7 @@ import { useAtom, useAtomValue } from "jotai";
 import { blazeInfo, openBuyTicketModal } from "@/data/atoms";
 // Images
 import Image from "next/image";
-import flame from "@/../public/assets/tiny_flame.png";
+import flame from "@/../public/jackpot.png";
 import loadingGif from "@/../public/assets/loading_flame.gif";
 //  Contracts
 import {
@@ -119,8 +119,7 @@ const BuyTicketsModal = () => {
   return (
     <dialog className="modal font-outfit" open={openModal}>
       <div className="modal-box bg-secondary-bg border-2 rounded-3xl border-golden">
-        <div className="flex flex-row justify-evenly items-center">
-          <Image src={flame} alt="Ticket Fire" height={55} width={55} />
+        <div className="flex flex-row justify-between items-center">
           <h4 className="text-center text-2xl md:text-4xl font-bold">
             {(view == 0 && "Buy Tickets") ||
               (view == 1 && "Ready To Play") ||
@@ -129,10 +128,10 @@ const BuyTicketsModal = () => {
           </h4>
           <Image
             src={flame}
-            alt="Ticket Fire"
-            height={55}
-            width={55}
-            style={{ transform: "scaleX(-1)" }}
+            alt="Jackpot logo"
+            height={75}
+            // width={55}
+            // style={{ transform: "scaleX(-1)" }}
           />
         </div>
         {view == 0 && (

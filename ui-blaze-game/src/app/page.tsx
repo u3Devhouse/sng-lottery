@@ -26,15 +26,16 @@ import OwnerCard from "@/components/owner/OwnerCard";
 const Page = () => {
   return (
     <>
-      <h1 className="text-4xl font-outfit font-bold drop-shadow-md text-center my-10 whitespace-pre-wrap">
-        Get your tickets{"\n "}& Play!
-      </h1>
       <section className="w-full pb-4 flex flex-col items-center">
-        <h2 className="underline font-outfit pb-4.">Current Round</h2>
+        <h2 className="italic font-outfit pb-4 text-2xl font-bold">
+          Current Round
+        </h2>
         <CurrentCard />
       </section>
-      <section className="flex flex-col items-center">
-        <h2 className="underline font-outfit py-4">Past Rounds</h2>
+      <section className="flex flex-col items-center pt-12">
+        <h2 className="italic font-outfit pb-4 text-2xl font-bold">
+          Past Rounds
+        </h2>
         <PastRounds />
       </section>
       <section className="flex flex-col items-center">

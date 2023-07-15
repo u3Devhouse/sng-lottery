@@ -21,6 +21,7 @@ import {
   useWaitForTransaction,
 } from "wagmi";
 import TicketNumber from "./TicketNumber";
+import { GrView } from "react-icons/gr";
 
 const PastRounds = () => {
   const { address } = useAccount();
@@ -178,12 +179,12 @@ const PastRounds = () => {
   return (
     <>
       <div className="card bg-secondary-bg rounded-3xl overflow-hidden border-golden-dark border-4 md:max-w-md w-[300px] md:min-w-[450px] font-outfit">
-        <div className="bg-golden-dark w-full px-4 py-2 flex flex-row justify-between items-center text-sm">
+        <div className="bg-golden w-full px-4 py-2 flex flex-row justify-between items-center text-sm text-black">
           <div>#{selectedRound}</div>
           <div className="flex flex-row items-center">
             <button
               className={classNames(
-                "btn btn-circle btn-sm btn-primary",
+                "btn btn-circle btn-sm bg-golden text-black border-0 hover:bg-golden-dark",
                 selectedRound < 2 && "btn-disabled"
               )}
               onClick={() => {
@@ -194,7 +195,7 @@ const PastRounds = () => {
             </button>
             <button
               className={classNames(
-                "btn btn-circle btn-sm btn-primary",
+                "btn btn-circle btn-sm bg-golden text-black border-0 hover:bg-golden-dark",
                 selectedRound < 2 && "btn-disabled"
               )}
               onClick={() => {
@@ -205,7 +206,7 @@ const PastRounds = () => {
             </button>
             <button
               className={classNames(
-                "btn btn-circle btn-sm btn-primary",
+                "btn btn-circle btn-sm bg-golden text-black border-0 hover:bg-golden-dark",
                 selectedRound >= maxPrev && "btn-disabled"
               )}
               onClick={() => {
@@ -217,7 +218,7 @@ const PastRounds = () => {
             </button>
             <button
               className={classNames(
-                "btn btn-circle btn-sm btn-primary",
+                "btn btn-circle btn-sm bg-golden text-black border-0 hover:bg-golden-dark",
                 selectedRound >= maxPrev && "btn-disabled"
               )}
               onClick={() => {
@@ -237,9 +238,18 @@ const PastRounds = () => {
             </span>
           </h4>
           <div className="text-center">
-            Your Tickets:{" "}
-            <button onClick={() => setOpenMyTickets(true)}>
+            Your Tickets:&nbsp;
+            <button
+              className={classNames(
+                "btn btn-secondary btn-sm mt-2",
+                parseInt(userTickets) == 0 && "btn-disabled "
+              )}
+              onClick={() => {
+                parseInt(userTickets) > 0 && setOpenMyTickets(true);
+              }}
+            >
               {userTickets}
+              <GrView className="text-green-500" />
             </button>
           </div>
           <div className="text-center">
