@@ -167,7 +167,11 @@ const Card = () => {
                   {(
                     blazePrice *
                     Number(formatEther(roundInfo?.[0]?.result?.[0] || 0n))
-                  ).toLocaleString()}
+                  )
+                    .toLocaleString()
+                    .split(".")
+                    .map((x, i) => (i === 0 ? x : x.slice(0, 2)))
+                    .join(".")}
                 </span>
               </span>
             </div>
