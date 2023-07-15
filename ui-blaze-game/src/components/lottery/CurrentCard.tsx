@@ -146,9 +146,6 @@ const Card = () => {
           </div>
         </div>
         <div className="card-body flex flex-row items-center justify-evenly border-b-2 border-b-gray-400 pb-4">
-          <div className="w-10 md:w-16">
-            <Image src={flyingTokens} alt="Flying tokens" />
-          </div>
           <div className="flex flex-col items-center">
             <div className="text-xl whitespace-pre-wrap text-center">
               Prize Amount
@@ -174,14 +171,80 @@ const Card = () => {
                 </span>
               </span>
             </div>
-            <div className="py-4 whitespace-pre-wrap md:whitespace-normal text-center">
-              Tickets in Pool:{" \n"}
-              <span className="underline">
-                {roundInfo?.[0]?.result?.[1].toLocaleString() || 0}
-              </span>
+            <div className="flex flex-row items-center gap-x-4">
+              <div>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="50"
+                  height="16"
+                  viewBox="0 0 50 16"
+                  fill="none"
+                >
+                  <line
+                    x1="50"
+                    y1="15"
+                    x2="19.1489"
+                    y2="15"
+                    stroke="#E0B654"
+                    stroke-width="2"
+                  />
+                  <line
+                    x1="50"
+                    y1="1"
+                    x2="19.1489"
+                    y2="1"
+                    stroke="#E0B654"
+                    stroke-width="2"
+                  />
+                  <line
+                    x1="50"
+                    y1="8"
+                    y2="8"
+                    stroke="#E0B654"
+                    stroke-width="2"
+                  />
+                </svg>
+              </div>
+              <div className="py-4 whitespace-pre-wrap md:whitespace-normal text-center">
+                Tickets Playing:&nbsp;
+                <span className="underline">
+                  {roundInfo?.[0]?.result?.[1].toLocaleString() || 0}
+                </span>
+              </div>
+              <div>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="50"
+                  height="16"
+                  viewBox="0 0 50 16"
+                  fill="none"
+                >
+                  <line
+                    y1="1"
+                    x2="30.8511"
+                    y2="1"
+                    stroke="#E0B654"
+                    stroke-width="2"
+                  />
+                  <line
+                    y1="15"
+                    x2="30.8511"
+                    y2="15"
+                    stroke="#E0B654"
+                    stroke-width="2"
+                  />
+                  <line
+                    y1="8"
+                    x2="50"
+                    y2="8"
+                    stroke="#E0B654"
+                    stroke-width="2"
+                  />
+                </svg>
+              </div>
             </div>
             {(roundInfo?.[1]?.result?.[2] || 0n) > 0 && (
-              <div className="pb-4 whitespace-pre-wrap flex flex-col items-center">
+              <div className="pb-4 whitespace-pre-wrap flex flex-col gap-x-4 items-center">
                 <div>View Tickets:</div>
                 <button
                   className="btn btn-secondary btn-sm mt-2"
@@ -206,13 +269,6 @@ const Card = () => {
                 Buy Tickets
               </button>
             </div>
-          </div>
-          <div className="w-10 md:w-16">
-            <Image
-              src={flyingTokens}
-              alt="Flying tokens"
-              style={{ transform: "scaleX(-1)" }}
-            />
           </div>
         </div>
         <div className="w-full collapse collapse-arrow">

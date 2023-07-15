@@ -237,23 +237,79 @@ const PastRounds = () => {
               {parseFloat(formatEther(data?.[0] || 0n)).toLocaleString()} BLZE
             </span>
           </h4>
-          <div className="text-center">
-            Your Tickets:&nbsp;
-            <button
-              className={classNames(
-                "btn btn-secondary btn-sm mt-2",
-                parseInt(userTickets) == 0 && "btn-disabled "
-              )}
-              onClick={() => {
-                parseInt(userTickets) > 0 && setOpenMyTickets(true);
-              }}
-            >
-              {userTickets}
-              <GrView className="text-green-500" />
-            </button>
-          </div>
-          <div className="text-center">
-            Your Winners: {userWinners?.length || 0}
+          <div className="flex flex-row items-center justify-center gap-x-4">
+            <div>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="50"
+                height="16"
+                viewBox="0 0 50 16"
+                fill="none"
+              >
+                <line
+                  x1="50"
+                  y1="15"
+                  x2="19.1489"
+                  y2="15"
+                  stroke="#E0B654"
+                  stroke-width="2"
+                />
+                <line
+                  x1="50"
+                  y1="1"
+                  x2="19.1489"
+                  y2="1"
+                  stroke="#E0B654"
+                  stroke-width="2"
+                />
+                <line x1="50" y1="8" y2="8" stroke="#E0B654" stroke-width="2" />
+              </svg>
+            </div>
+            <div className="flex flex-col justify-center">
+              <div className="text-center">
+                Your Tickets:&nbsp;
+                <button
+                  className={classNames(
+                    "btn btn-secondary btn-sm mt-2",
+                    parseInt(userTickets) == 0 && "btn-disabled "
+                  )}
+                  onClick={() => {
+                    parseInt(userTickets) > 0 && setOpenMyTickets(true);
+                  }}
+                >
+                  {userTickets}
+                  <GrView className="text-green-500" />
+                </button>
+              </div>
+              <div className="text-center">
+                Your Winners: {userWinners?.length || 0}
+              </div>
+            </div>
+            <div>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="50"
+                height="16"
+                viewBox="0 0 50 16"
+                fill="none"
+              >
+                <line
+                  y1="1"
+                  x2="30.8511"
+                  y2="1"
+                  stroke="#E0B654"
+                  stroke-width="2"
+                />
+                <line
+                  y1="15"
+                  x2="30.8511"
+                  y2="15"
+                  stroke="#E0B654"
+                  stroke-width="2"
+                />
+                <line y1="8" x2="50" y2="8" stroke="#E0B654" stroke-width="2" />
+              </svg>
+            </div>
           </div>
           {userWinners.length > 0 && (
             <div className="text-center">
@@ -422,6 +478,22 @@ const PastRounds = () => {
           <h4 className="text-2xl font-outfit text-center font-bold pb-6">
             Bought Tickets
           </h4>
+          <div className="bg-emerald-700 pb-4 pt-2 rounded-full sticky top-0">
+            <div className="text-sm text-center text-golden pb-2">
+              Round Winner Number
+            </div>
+            <div className="flex flex-row items-center justify-center gap-x-2">
+              <div className="font-normal">W#</div>
+              {toEvenHexNoPrefix(matchesInfo?.[0]?.result?.[6] || 0n)
+                .match(/..?/g)
+                ?.map((hex, ix) => (
+                  <TicketNumber
+                    key={`bought-ticket-winner-${ix}`}
+                    number={parseInt("0x" + hex, 16)}
+                  />
+                ))}
+            </div>
+          </div>
           <div className="flex flex-col items-center justify-center">
             {matchesInfo?.[8]?.result?.[0]?.map((ticket, index) => {
               const hexNum = toEvenHexNoPrefix(ticket);
