@@ -164,14 +164,12 @@ const Card = () => {
               <span className="text-golden">
                 ${" "}
                 <span className="underline">
-                  {(
-                    blazePrice *
-                    Number(formatEther(roundInfo?.[0]?.result?.[0] || 0n))
-                  )
-                    .toLocaleString()
-                    .split(".")
-                    .map((x, i) => (i === 0 ? x : x.slice(0, 2)))
-                    .join(".")}
+                  {parseFloat(
+                    (
+                      blazePrice *
+                      parseFloat(formatEther(roundInfo?.[0]?.result?.[0] || 0n))
+                    ).toFixed(2)
+                  ).toLocaleString()}
                 </span>
               </span>
             </div>
@@ -344,14 +342,16 @@ const Card = () => {
                       ).toLocaleString()}
                     </td>
                     <td className="text-gray-500 text-right">
-                      {(
-                        (Number(
-                          (roundInfo?.[0].result?.[0] || 0n) *
-                            (roundInfo?.[6]?.result || 0n)
-                        ) *
-                          blazeData.price) /
-                        100e18
-                      ).toFixed(2)}
+                      {parseFloat(
+                        (
+                          (Number(
+                            (roundInfo?.[0].result?.[0] || 0n) *
+                              (roundInfo?.[6]?.result || 0n)
+                          ) *
+                            blazeData.price) /
+                          100e18
+                        ).toFixed(2)
+                      ).toLocaleString()}
                     </td>
                   </tr>
                   <tr>
@@ -365,14 +365,16 @@ const Card = () => {
                       ).toLocaleString()}
                     </td>
                     <td className="text-gray-500 text-right">
-                      {(
-                        (Number(
-                          (roundInfo?.[0].result?.[0] || 0n) *
-                            (roundInfo?.[7]?.result || 0n)
-                        ) *
-                          blazeData.price) /
-                        100e18
-                      ).toFixed(2)}
+                      {parseFloat(
+                        (
+                          (Number(
+                            (roundInfo?.[0].result?.[0] || 0n) *
+                              (roundInfo?.[7]?.result || 0n)
+                          ) *
+                            blazeData.price) /
+                          100e18
+                        ).toFixed(2)
+                      ).toLocaleString()}
                     </td>
                   </tr>
                   <tr>
@@ -386,14 +388,16 @@ const Card = () => {
                       ).toLocaleString()}
                     </td>
                     <td className="text-gray-500 text-right">
-                      {(
-                        (Number(
-                          (roundInfo?.[0].result?.[0] || 0n) *
-                            (roundInfo?.[8]?.result || 0n)
-                        ) *
-                          blazeData.price) /
-                        100e18
-                      ).toFixed(2)}
+                      {parseFloat(
+                        (
+                          (Number(
+                            (roundInfo?.[0].result?.[0] || 0n) *
+                              (roundInfo?.[8]?.result || 0n)
+                          ) *
+                            blazeData.price) /
+                          100e18
+                        ).toFixed(2)
+                      ).toLocaleString()}
                     </td>
                   </tr>
                   <tr>
@@ -407,14 +411,16 @@ const Card = () => {
                       ).toLocaleString()}
                     </td>
                     <td className="text-gray-500 text-right">
-                      {(
-                        (Number(
-                          (roundInfo?.[0].result?.[0] || 0n) *
-                            (roundInfo?.[9]?.result || 0n)
-                        ) *
-                          blazeData.price) /
-                        100e18
-                      ).toFixed(2)}
+                      {parseFloat(
+                        (
+                          (Number(
+                            (roundInfo?.[0].result?.[0] || 0n) *
+                              (roundInfo?.[9]?.result || 0n)
+                          ) *
+                            blazeData.price) /
+                          100e18
+                        ).toFixed(2)
+                      ).toLocaleString()}
                     </td>
                   </tr>
                   <tr>
@@ -428,14 +434,16 @@ const Card = () => {
                       ).toLocaleString()}
                     </td>
                     <td className="text-gray-500 text-right">
-                      {(
-                        (Number(
-                          (roundInfo?.[0].result?.[0] || 0n) *
-                            (roundInfo?.[10]?.result || 0n)
-                        ) *
-                          blazeData.price) /
-                        100e18
-                      ).toFixed(2)}
+                      {parseFloat(
+                        (
+                          (Number(
+                            (roundInfo?.[0].result?.[0] || 0n) *
+                              (roundInfo?.[10]?.result || 0n)
+                          ) *
+                            blazeData.price) /
+                          100e18
+                        ).toFixed(2)
+                      ).toLocaleString()}
                     </td>
                   </tr>
                 </tbody>
