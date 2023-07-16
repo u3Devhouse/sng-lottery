@@ -188,7 +188,7 @@ const Card = () => {
                     x2="19.1489"
                     y2="15"
                     stroke="#E0B654"
-                    stroke-width="2"
+                    strokeWidth="2"
                   />
                   <line
                     x1="50"
@@ -196,14 +196,14 @@ const Card = () => {
                     x2="19.1489"
                     y2="1"
                     stroke="#E0B654"
-                    stroke-width="2"
+                    strokeWidth="2"
                   />
                   <line
                     x1="50"
                     y1="8"
                     y2="8"
                     stroke="#E0B654"
-                    stroke-width="2"
+                    strokeWidth="2"
                   />
                 </svg>
               </div>
@@ -226,21 +226,21 @@ const Card = () => {
                     x2="30.8511"
                     y2="1"
                     stroke="#E0B654"
-                    stroke-width="2"
+                    strokeWidth="2"
                   />
                   <line
                     y1="15"
                     x2="30.8511"
                     y2="15"
                     stroke="#E0B654"
-                    stroke-width="2"
+                    strokeWidth="2"
                   />
                   <line
                     y1="8"
                     x2="50"
                     y2="8"
                     stroke="#E0B654"
-                    stroke-width="2"
+                    strokeWidth="2"
                   />
                 </svg>
               </div>
