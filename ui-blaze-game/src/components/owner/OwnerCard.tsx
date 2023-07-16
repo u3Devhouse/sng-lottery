@@ -14,7 +14,7 @@ import {
 
 import intervalToDuration from "date-fns/intervalToDuration";
 import formatDuration from "date-fns/formatDuration";
-import { isAddress } from "viem";
+import { BaseError, isAddress } from "viem";
 
 const owner = "0x28b170c9B73603E09bF51B485252218A68E279D2";
 
@@ -78,7 +78,12 @@ const OwnerCard = () => {
     useContractWrite(activateConfig);
   const { write: writeDuration, data: durationData } =
     useContractWrite(durationConfig);
-  const { write: addToPot, data: potData } = useContractWrite(potAddConfig);
+  const {
+    write: addToPot,
+    data: potData,
+    error: potError,
+    isError,
+  } = useContractWrite(potAddConfig);
   const { write: setUpkeep, data: upkeepData } =
     useContractWrite(upkeeperConfig);
   const { write: setPrice, data: priceSetData } =
@@ -236,6 +241,12 @@ const OwnerCard = () => {
               placeholder="BLZE to Add"
               onClick={(e) => e.currentTarget.select()}
             />
+            <label className="label">
+              <span className="label-text-alt">
+                USD:&nbsp;{potAdd * mainInfo.price}
+              </span>
+            </label>
+            {isError && <div>{(potError as BaseError)?.shortMessage}</div>}
           </div>
           <button
             className={classNames(
