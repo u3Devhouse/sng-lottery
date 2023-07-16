@@ -280,17 +280,18 @@ const Card = () => {
           <div className="w-full text-center pl-[48px] collapse-title">
             Details
           </div>
-          <div className="collapse-content overflow-auto">
-            <table className="table font-outfit">
-              <thead>
-                <tr>
-                  <th>Match</th>
-                  <th>Amount BLZE</th>
-                  <th>Amount USD</th>
-                </tr>
-              </thead>
-              <tbody>
-                {/* <tr>
+          <div className="collapse-content overflow-x-scroll sm:overflow-x-visible">
+            <div className="min-h-fit">
+              <table className="table font-outfit">
+                <thead>
+                  <tr>
+                    <th>Match</th>
+                    <th>Amount BLZE</th>
+                    <th>Amount USD</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {/* <tr>
                   <td className="">Match 1</td>
                   <td className="text-right text-golden font-bold">
                     {(
@@ -332,113 +333,114 @@ const Card = () => {
                     ).toFixed(2)}
                   </td>
                 </tr> */}
-                <tr>
-                  <td className="">Match 3</td>
-                  <td className="text-right text-golden font-bold">
-                    {(
-                      Number(
-                        (roundInfo?.[0].result?.[0] || 0n) *
-                          (roundInfo?.[6]?.result || 0n)
-                      ) / 100e18
-                    ).toLocaleString()}
-                  </td>
-                  <td className="text-gray-500 text-right">
-                    {(
-                      (Number(
-                        (roundInfo?.[0].result?.[0] || 0n) *
-                          (roundInfo?.[6]?.result || 0n)
-                      ) *
-                        blazeData.price) /
-                      100e18
-                    ).toFixed(2)}
-                  </td>
-                </tr>
-                <tr>
-                  <td className="">Match 4</td>
-                  <td className="text-right text-golden font-bold">
-                    {(
-                      Number(
-                        (roundInfo?.[0].result?.[0] || 0n) *
-                          (roundInfo?.[7]?.result || 0n)
-                      ) / 100e18
-                    ).toLocaleString()}
-                  </td>
-                  <td className="text-gray-500 text-right">
-                    {(
-                      (Number(
-                        (roundInfo?.[0].result?.[0] || 0n) *
-                          (roundInfo?.[7]?.result || 0n)
-                      ) *
-                        blazeData.price) /
-                      100e18
-                    ).toFixed(2)}
-                  </td>
-                </tr>
-                <tr>
-                  <td className="">Match 5</td>
-                  <td className="text-right text-golden font-bold">
-                    {(
-                      Number(
-                        (roundInfo?.[0].result?.[0] || 0n) *
-                          (roundInfo?.[8]?.result || 0n)
-                      ) / 100e18
-                    ).toLocaleString()}
-                  </td>
-                  <td className="text-gray-500 text-right">
-                    {(
-                      (Number(
-                        (roundInfo?.[0].result?.[0] || 0n) *
-                          (roundInfo?.[8]?.result || 0n)
-                      ) *
-                        blazeData.price) /
-                      100e18
-                    ).toFixed(2)}
-                  </td>
-                </tr>
-                <tr>
-                  <td className="">BLZE Burn</td>
-                  <td className="text-right text-red-500 font-bold">
-                    {(
-                      Number(
-                        (roundInfo?.[0].result?.[0] || 0n) *
-                          (roundInfo?.[9]?.result || 0n)
-                      ) / 100e18
-                    ).toLocaleString()}
-                  </td>
-                  <td className="text-gray-500 text-right">
-                    {(
-                      (Number(
-                        (roundInfo?.[0].result?.[0] || 0n) *
-                          (roundInfo?.[9]?.result || 0n)
-                      ) *
-                        blazeData.price) /
-                      100e18
-                    ).toFixed(2)}
-                  </td>
-                </tr>
-                <tr>
-                  <td className="">Development</td>
-                  <td className="text-right text-golden font-bold">
-                    {(
-                      Number(
-                        (roundInfo?.[0].result?.[0] || 0n) *
-                          (roundInfo?.[10]?.result || 0n)
-                      ) / 100e18
-                    ).toLocaleString()}
-                  </td>
-                  <td className="text-gray-500 text-right">
-                    {(
-                      (Number(
-                        (roundInfo?.[0].result?.[0] || 0n) *
-                          (roundInfo?.[10]?.result || 0n)
-                      ) *
-                        blazeData.price) /
-                      100e18
-                    ).toFixed(2)}
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+                  <tr>
+                    <td className="">Match 3</td>
+                    <td className="text-right text-golden font-bold">
+                      {(
+                        Number(
+                          (roundInfo?.[0].result?.[0] || 0n) *
+                            (roundInfo?.[6]?.result || 0n)
+                        ) / 100e18
+                      ).toLocaleString()}
+                    </td>
+                    <td className="text-gray-500 text-right">
+                      {(
+                        (Number(
+                          (roundInfo?.[0].result?.[0] || 0n) *
+                            (roundInfo?.[6]?.result || 0n)
+                        ) *
+                          blazeData.price) /
+                        100e18
+                      ).toFixed(2)}
+                    </td>
+                  </tr>
+                  <tr>
+                    <td className="">Match 4</td>
+                    <td className="text-right text-golden font-bold">
+                      {(
+                        Number(
+                          (roundInfo?.[0].result?.[0] || 0n) *
+                            (roundInfo?.[7]?.result || 0n)
+                        ) / 100e18
+                      ).toLocaleString()}
+                    </td>
+                    <td className="text-gray-500 text-right">
+                      {(
+                        (Number(
+                          (roundInfo?.[0].result?.[0] || 0n) *
+                            (roundInfo?.[7]?.result || 0n)
+                        ) *
+                          blazeData.price) /
+                        100e18
+                      ).toFixed(2)}
+                    </td>
+                  </tr>
+                  <tr>
+                    <td className="">Match 5</td>
+                    <td className="text-right text-golden font-bold">
+                      {(
+                        Number(
+                          (roundInfo?.[0].result?.[0] || 0n) *
+                            (roundInfo?.[8]?.result || 0n)
+                        ) / 100e18
+                      ).toLocaleString()}
+                    </td>
+                    <td className="text-gray-500 text-right">
+                      {(
+                        (Number(
+                          (roundInfo?.[0].result?.[0] || 0n) *
+                            (roundInfo?.[8]?.result || 0n)
+                        ) *
+                          blazeData.price) /
+                        100e18
+                      ).toFixed(2)}
+                    </td>
+                  </tr>
+                  <tr>
+                    <td className="">BLZE Burn</td>
+                    <td className="text-right text-red-500 font-bold">
+                      {(
+                        Number(
+                          (roundInfo?.[0].result?.[0] || 0n) *
+                            (roundInfo?.[9]?.result || 0n)
+                        ) / 100e18
+                      ).toLocaleString()}
+                    </td>
+                    <td className="text-gray-500 text-right">
+                      {(
+                        (Number(
+                          (roundInfo?.[0].result?.[0] || 0n) *
+                            (roundInfo?.[9]?.result || 0n)
+                        ) *
+                          blazeData.price) /
+                        100e18
+                      ).toFixed(2)}
+                    </td>
+                  </tr>
+                  <tr>
+                    <td className="">Development</td>
+                    <td className="text-right text-golden font-bold">
+                      {(
+                        Number(
+                          (roundInfo?.[0].result?.[0] || 0n) *
+                            (roundInfo?.[10]?.result || 0n)
+                        ) / 100e18
+                      ).toLocaleString()}
+                    </td>
+                    <td className="text-gray-500 text-right">
+                      {(
+                        (Number(
+                          (roundInfo?.[0].result?.[0] || 0n) *
+                            (roundInfo?.[10]?.result || 0n)
+                        ) *
+                          blazeData.price) /
+                        100e18
+                      ).toFixed(2)}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       </div>

@@ -361,17 +361,18 @@ const PastRounds = () => {
           <div className="w-full text-center pl-[48px] collapse-title">
             Details
           </div>
-          <div className="collapse-content overflow-auto">
-            <table className="table font-outfit">
-              <thead>
-                <tr>
-                  <th>Match</th>
-                  <th className="text-center">Matches</th>
-                  <th className="text-right">BLZE</th>
-                </tr>
-              </thead>
-              <tbody>
-                {/* <tr>
+          <div className="collapse-content overflow-x-scroll sm:overflow-x-visible">
+            <div className="min-h-fit">
+              <table className="table font-outfit">
+                <thead>
+                  <tr>
+                    <th>Match</th>
+                    <th className="text-center">Matches</th>
+                    <th className="text-right">BLZE</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {/* <tr>
                   <td className="text-sm">Match 1</td>
                   <td className="text-center text-golden font-bold">
                     {Number(
@@ -401,75 +402,76 @@ const PastRounds = () => {
                     ).toLocaleString()}
                   </td>
                 </tr> */}
-                <tr>
-                  <td className="text-sm">Match 3</td>
-                  <td className="text-center text-golden font-bold">
-                    {Number(
-                      matchesInfo?.[0]?.result?.[3] || 0n
-                    ).toLocaleString()}
-                  </td>
-                  <td className="text-gray-500 text-right">
-                    {(
-                      Number(
-                        (data?.[0] || 0n) * (matchesInfo?.[3]?.result || 0n)
-                      ) / 100e18
-                    ).toLocaleString()}
-                  </td>
-                </tr>
-                <tr>
-                  <td className="text-sm">Match 4</td>
-                  <td className="text-center text-golden font-bold">
-                    {Number(
-                      matchesInfo?.[0]?.result?.[3] || 0n
-                    ).toLocaleString()}
-                  </td>
-                  <td className="text-gray-500 text-right">
-                    {(
-                      Number(
-                        (data?.[0] || 0n) * (matchesInfo?.[4]?.result || 0n)
-                      ) / 100e18
-                    ).toLocaleString()}
-                  </td>
-                </tr>
-                <tr>
-                  <td className="text-sm">Match 5</td>
-                  <td className="text-center text-golden font-bold">
-                    {Number(
-                      matchesInfo?.[0]?.result?.[4] || 0n
-                    ).toLocaleString()}
-                  </td>
-                  <td className="text-gray-500 text-right">
-                    {(
-                      Number(
-                        (data?.[0] || 0n) * (matchesInfo?.[5]?.result || 0n)
-                      ) / 100e18
-                    ).toLocaleString()}
-                  </td>
-                </tr>
-                <tr>
-                  <td className="">Burn</td>
-                  <td className="text-red-500 text-right" colSpan={2}>
-                    {(
-                      Number(
-                        (data?.[0] || 0n) * (matchesInfo?.[6]?.result || 0n)
-                      ) / 100e18
-                    ).toLocaleString()}
-                    &nbsp;BLZE
-                  </td>
-                </tr>
-                <tr>
-                  <td className="">Development</td>
-                  <td className="text-golden text-right" colSpan={2}>
-                    {(
-                      Number(
-                        (data?.[0] || 0n) * (matchesInfo?.[7]?.result || 0n)
-                      ) / 100e18
-                    ).toLocaleString()}
-                    &nbsp;BLZE
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+                  <tr>
+                    <td className="text-sm">Match 3</td>
+                    <td className="text-center text-golden font-bold">
+                      {Number(
+                        matchesInfo?.[0]?.result?.[3] || 0n
+                      ).toLocaleString()}
+                    </td>
+                    <td className="text-gray-500 text-right">
+                      {(
+                        Number(
+                          (data?.[0] || 0n) * (matchesInfo?.[3]?.result || 0n)
+                        ) / 100e18
+                      ).toLocaleString()}
+                    </td>
+                  </tr>
+                  <tr>
+                    <td className="text-sm">Match 4</td>
+                    <td className="text-center text-golden font-bold">
+                      {Number(
+                        matchesInfo?.[0]?.result?.[3] || 0n
+                      ).toLocaleString()}
+                    </td>
+                    <td className="text-gray-500 text-right">
+                      {(
+                        Number(
+                          (data?.[0] || 0n) * (matchesInfo?.[4]?.result || 0n)
+                        ) / 100e18
+                      ).toLocaleString()}
+                    </td>
+                  </tr>
+                  <tr>
+                    <td className="text-sm">Match 5</td>
+                    <td className="text-center text-golden font-bold">
+                      {Number(
+                        matchesInfo?.[0]?.result?.[4] || 0n
+                      ).toLocaleString()}
+                    </td>
+                    <td className="text-gray-500 text-right">
+                      {(
+                        Number(
+                          (data?.[0] || 0n) * (matchesInfo?.[5]?.result || 0n)
+                        ) / 100e18
+                      ).toLocaleString()}
+                    </td>
+                  </tr>
+                  <tr>
+                    <td className="">Burn</td>
+                    <td className="text-red-500 text-right" colSpan={2}>
+                      {(
+                        Number(
+                          (data?.[0] || 0n) * (matchesInfo?.[6]?.result || 0n)
+                        ) / 100e18
+                      ).toLocaleString()}
+                      &nbsp;BLZE
+                    </td>
+                  </tr>
+                  <tr>
+                    <td className="">Development</td>
+                    <td className="text-golden text-right" colSpan={2}>
+                      {(
+                        Number(
+                          (data?.[0] || 0n) * (matchesInfo?.[7]?.result || 0n)
+                        ) / 100e18
+                      ).toLocaleString()}
+                      &nbsp;BLZE
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       </div>
