@@ -30,7 +30,7 @@ export default function RootLayout({
       lang="en"
       className={`${roboto.className} ${outfit.variable} main-bg`}
     >
-      <body className="main-bg relative w-[100vw]">
+      <body className="main-bg relative w-[100vw] min-h-screen">
         <video
           autoPlay
           playsInline

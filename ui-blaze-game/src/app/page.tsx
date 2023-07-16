@@ -12,7 +12,7 @@ const Page = () => {
         </h2>
         <CurrentCard />
       </section>
-      <section className="flex flex-col items-center pt-12">
+      <section className="flex flex-col items-center py-12">
         <h2 className="italic font-outfit pb-4 text-2xl font-bold">
           Past Rounds
         </h2>
