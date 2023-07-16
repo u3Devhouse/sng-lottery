@@ -19,7 +19,7 @@ export const MobileLink = () => {
           href="https://blaze-lottery.vercel.app/"
           target="_parent"
         >
-          Mobile users use THIS site
+          Mobile users click THIS link
         </a>
       </div>
     </section>
