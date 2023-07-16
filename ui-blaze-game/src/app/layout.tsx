@@ -30,14 +30,15 @@ export default function RootLayout({
       lang="en"
       className={`${roboto.className} ${outfit.variable} main-bg`}
     >
-      <body className="main-bg relative w-[100vw] min-h-screen">
+      <body className="relative w-[100vw] min-h-screen">
+        <div className="main-bg fixed top-0 w-screen h-screen -z-10" />
         <video
           autoPlay
           playsInline
           muted
           loop
           preload="auto"
-          className="w-full fixed top-0 h-full object-cover -z-10 brightness-50"
+          className="w-full fixed top-0 h-full object-cover -z-20 brightness-50"
         >
           <source src="/bg_vid.mp4" type="video/mp4" />
           Your browser does not support the video tag.
