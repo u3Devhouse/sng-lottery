@@ -8,7 +8,7 @@ const Header = () => {
   return (
     <header className="flex flex-col items-center justify-between py-12 gap-4">
       <Image src={jackpotImg} alt="Jackpot logo" />
-      <div className={classNames("pt-4", isIframe && "hidden")}>
+      <div className={classNames("pt-4", isIframe && "hidden md:block")}>
         <Web3Button />
       </div>
     </header>
