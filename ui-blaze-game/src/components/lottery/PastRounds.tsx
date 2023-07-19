@@ -406,7 +406,7 @@ const PastRounds = () => {
                     <td className="text-sm">Match 3</td>
                     <td className="text-center text-golden font-bold">
                       {Number(
-                        matchesInfo?.[0]?.result?.[3] || 0n
+                        matchesInfo?.[0]?.result?.[2] || 0n
                       ).toLocaleString()}
                     </td>
                     <td className="text-gray-500 text-right">
