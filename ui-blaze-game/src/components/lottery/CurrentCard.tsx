@@ -172,6 +172,17 @@ const Card = () => {
                   ).toLocaleString()}
                 </span>
               </span>
+              {"\n"}
+              <span className="text-golden/50 text-sm">
+                <span className="">
+                  {parseFloat(
+                    parseFloat(
+                      formatEther(roundInfo?.[0]?.result?.[0] || 0n)
+                    ).toFixed(2)
+                  ).toLocaleString()}
+                </span>{" "}
+                BLZE
+              </span>
             </div>
             <div className="flex flex-row items-center gap-x-4">
               <div>
