@@ -352,4 +352,18 @@ describe("Lottery", function () {
     it("Should be able to claim winnings from multiple rounds")
   })
 
+  describe("Test Randomness setup", () => {
+    it("Should not allow randomness to have non unique numbers", async () => {
+      const { lottery, upkeep, vrf } = await loadFixture(setupTicketsBought);
+      await time.increase(3601);
+      const upkeepCheck = await lottery.checkUpkeep("0x00")
+      await lottery.connect(upkeep).performUpkeep(upkeepCheck.performData)
+      // fulfill randomness
+      const randonNumberSelected = convertToHex([0,0,0,0,0])
+      await vrf.fulfillRandomWordsWithOverride(1, lottery.address, [randonNumberSelected]);
+
+      expect((await lottery.matches(1)).winnerNumber).to.equal(convertToHex([4,3,2,1,0]))
+    })
+  })
+
 })

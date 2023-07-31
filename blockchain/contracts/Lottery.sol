@@ -54,11 +54,12 @@ contract BlazeLottery is
     //    TYPE DECLARATIONS
     //-------------------------------------------------------------------------
     struct RoundInfo {
+        uint256[] distribution;
         uint256 pot;
         uint256 ticketsBought;
         uint256 price;
         uint256 endRound; // Timestamp OR block number when round ends
-        uint randomnessRequestID;
+        uint256 randomnessRequestID;
         bool active;
     }
     struct UserTickets {
@@ -288,6 +289,7 @@ contract BlazeLottery is
         startRound.price = initPrice;
         startRound.active = true;
         startRound.endRound = firstRoundEnd;
+        startRound.distribution = distributionPercentages;
         emit StartRound(1);
     }
 
@@ -400,8 +402,22 @@ contract BlazeLottery is
         uint64 winnerNumber = uint64(randomWords[0]);
         uint64 addedMask = 0;
         for (uint8 i = 0; i < 5; i++) {
+            uint64 currentNumber = (winnerNumber >> (8 * i)) & BIT_6_MASK;
+            if (i == 0) {
+                addedMask += currentNumber;
+                continue;
+            }
+            for (uint8 j = 1; j < i + 1; j++) {
+                if (
+                    currentNumber == ((addedMask >> (8 * (j - 1))) & BIT_6_MASK)
+                ) {
+                    currentNumber++;
+                    j = 0;
+                    continue;
+                }
+            }
             // pass a 6 bit mask to get the last 6 bits of each number
-            addedMask += winnerNumber & (BIT_6_MASK << (8 * i));
+            addedMask += (currentNumber & BIT_6_MASK) << (8 * i);
         }
         if (addedMask == 0) addedMask = uint64(1);
         matches[requestId].winnerNumber = addedMask;
@@ -447,7 +463,7 @@ contract BlazeLottery is
                 user.claimed[ticketIndex] = true;
 
                 uint256 matchReward = (round.pot *
-                    distributionPercentages[_matches[i] - 1]);
+                    round.distribution[_matches[i] - 1]);
                 toReward += matchReward / (totalMatches * PERCENTAGE_BASE);
             } else {
                 revert BlazeLot__InvalidClaimMatch(i);
@@ -467,20 +483,20 @@ contract BlazeLottery is
         uint nextPot = 0;
         if (playingRound.pot == 0) return;
         // Check amount of winners of each match type and their distribution percentages
-        if (matchInfo.match1 == 0 && distributionPercentages[0] > 0)
-            nextPot += (currentPot * distributionPercentages[0]) / 100;
-        if (matchInfo.match2 == 0 && distributionPercentages[1] > 0)
-            nextPot += (currentPot * distributionPercentages[1]) / 100;
-        if (matchInfo.match3 == 0 && distributionPercentages[2] > 0)
-            nextPot += (currentPot * distributionPercentages[2]) / 100;
-        if (matchInfo.match4 == 0 && distributionPercentages[3] > 0)
-            nextPot += (currentPot * distributionPercentages[3]) / 100;
-        if (matchInfo.match5 == 0 && distributionPercentages[4] > 0)
-            nextPot += (currentPot * distributionPercentages[4]) / 100;
+        if (matchInfo.match1 == 0 && playingRound.distribution[0] > 0)
+            nextPot += (currentPot * playingRound.distribution[0]) / 100;
+        if (matchInfo.match2 == 0 && playingRound.distribution[1] > 0)
+            nextPot += (currentPot * playingRound.distribution[1]) / 100;
+        if (matchInfo.match3 == 0 && playingRound.distribution[2] > 0)
+            nextPot += (currentPot * playingRound.distribution[2]) / 100;
+        if (matchInfo.match4 == 0 && playingRound.distribution[3] > 0)
+            nextPot += (currentPot * playingRound.distribution[3]) / 100;
+        if (matchInfo.match5 == 0 && playingRound.distribution[4] > 0)
+            nextPot += (currentPot * playingRound.distribution[4]) / 100;
         // BURN the Currency Amount
-        uint burnAmount = (distributionPercentages[5] * currentPot) / 100;
+        uint burnAmount = (playingRound.distribution[5] * currentPot) / 100;
         // Send the appropriate percent to the team wallet
-        uint teamPot = (distributionPercentages[6] * currentPot) / 100;
+        uint teamPot = (playingRound.distribution[6] * currentPot) / 100;
         try currency.burn(burnAmount) {} catch {
             currency.transfer(DEAD_WALLET, burnAmount);
         }
@@ -496,6 +512,7 @@ contract BlazeLottery is
         roundInfo[currentRound].endRound =
             playingRound.endRound +
             roundDuration;
+        roundInfo[currentRound].distribution = distributionPercentages;
         if (roundInfo[currentRound].price == 0)
             roundInfo[currentRound].price = playingRound.price;
     }
@@ -634,7 +651,7 @@ contract BlazeLottery is
         );
         if (totalMatches == 0) return 0;
         return
-            (pot * distributionPercentages[_matched_ - 1]) /
+            (pot * roundInfo[round].distribution[_matched_ - 1]) /
             (PERCENTAGE_BASE * totalMatches);
     }
 
@@ -664,7 +681,7 @@ contract BlazeLottery is
             uint totalMatches = getTotalMatches(matches[rndId], _matched_);
             if (totalMatches == 0) continue;
             totalReward +=
-                (pot * distributionPercentages[_matched_ - 1]) /
+                (pot * roundInfo[round].distribution[_matched_ - 1]) /
                 (PERCENTAGE_BASE * totalMatches);
         }
         return totalReward;
