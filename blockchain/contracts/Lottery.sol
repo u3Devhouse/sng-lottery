@@ -54,7 +54,7 @@ contract BlazeLottery is
     //    TYPE DECLARATIONS
     //-------------------------------------------------------------------------
     struct RoundInfo {
-        uint256[] distribution;
+        uint256[5] distribution; // This is the total pot distributed to each item - NOT the percentages
         uint256 pot;
         uint256 ticketsBought;
         uint256 price;
@@ -93,13 +93,13 @@ contract BlazeLottery is
     mapping(address _user => mapping(uint _round => UserTickets _all))
         private userTickets;
 
-    uint[7] public distributionPercentages;
+    uint[5] public distributionPercentages; // This percentage allocates to the different distribution amounts per ROUND
     // [match1, match2, match3, match4, match5, burn, team]
     // 25% Match 5
     // 25% Match 4
     // 25% Match 3
-    // 0% Match 2
-    // 0% Match 1
+    // 0% Match 2 (ommited)
+    // 0% Match 1 (ommited)
     // 20% Burns
     // 5%  Team
     address public constant DEAD_WALLET =
@@ -163,7 +163,7 @@ contract BlazeLottery is
         keyHash = _keyHash;
         subscriptionId = _subscriptionId;
 
-        distributionPercentages = [0, 0, 25, 25, 25, 20, 5];
+        distributionPercentages = [25, 25, 25, 20, 5];
         teamWallet = _team;
     }
 
@@ -194,7 +194,9 @@ contract BlazeLottery is
         }
         // Get payment from ticket price
         uint256 price = playingRound.price * ticketAmount;
-        if (price > 0) addToPot(price, currentRound);
+
+        uint[] memory dist = new uint[](1);
+        if (price > 0) addToPot(price, currentRound, dist);
 
         playingRound.ticketsBought += ticketAmount;
         // Save Ticket to current Round
@@ -289,7 +291,6 @@ contract BlazeLottery is
         startRound.price = initPrice;
         startRound.active = true;
         startRound.endRound = firstRoundEnd;
-        startRound.distribution = distributionPercentages;
         emit StartRound(1);
     }
 
@@ -352,11 +353,38 @@ contract BlazeLottery is
      * @notice Add Blaze to the POT of the selected round
      * @param amount Amount of Blaze to add to the pot
      * @param round Round to add the Blaze to
+     * @param customDistribution Distribution of the funds into the pot
+        // 25% Match 3   0
+        // 25% Match 4   1
+        // 25% Match 5   2
+        // 20% Burns     3
+        // 5%  Team      4
      */
-    function addToPot(uint amount, uint round) public {
+    function addToPot(
+        uint amount,
+        uint round,
+        uint[] memory customDistribution
+    ) public {
         if (round < currentRound || round == 0) revert BlazeLot__InvalidRound();
+        uint distributionLength = customDistribution.length;
+        if (distributionLength == 0 || distributionLength != 5) {
+            customDistribution = new uint[](5);
+            customDistribution[0] = distributionPercentages[0];
+            customDistribution[1] = distributionPercentages[1];
+            customDistribution[2] = distributionPercentages[2];
+            customDistribution[3] = distributionPercentages[3];
+            customDistribution[4] = distributionPercentages[4];
+        }
+        RoundInfo storage playingRound = roundInfo[round];
+        for (uint i = 0; i < 5; i++) {
+            playingRound.distribution[i] +=
+                (customDistribution[i] * amount) /
+                PERCENTAGE_BASE;
+        }
+
         currency.transferFrom(msg.sender, address(this), amount);
-        roundInfo[round].pot += amount;
+        playingRound.pot += amount;
+
         emit AddToPot(msg.sender, amount, round);
     }
 
@@ -446,7 +474,7 @@ contract BlazeLottery is
         for (uint i = 0; i < _userTicketIndexes.length; i++) {
             uint ticketIndex = _userTicketIndexes[i];
             // index is checked and if out of bounds, will revert
-            if (_matches[i] == 0 || _matches[i] > 5)
+            if (_matches[i] < 3 || _matches[i] > 5)
                 revert BlazeLot__InvalidClaimMatch(i);
 
             if (user.claimed[ticketIndex])
@@ -462,9 +490,9 @@ contract BlazeLottery is
 
                 user.claimed[ticketIndex] = true;
 
-                uint256 matchReward = (round.pot *
-                    round.distribution[_matches[i] - 1]);
-                toReward += matchReward / (totalMatches * PERCENTAGE_BASE);
+                uint256 matchReward = round.distribution[_matches[i] - 3] /
+                    totalMatches;
+                toReward += matchReward;
             } else {
                 revert BlazeLot__InvalidClaimMatch(i);
             }
@@ -479,24 +507,29 @@ contract BlazeLottery is
         RoundInfo storage playingRound = roundInfo[round];
         RoundInfo storage nextRound = roundInfo[round + 1];
 
-        uint currentPot = playingRound.pot;
         uint nextPot = 0;
         if (playingRound.pot == 0) return;
         // Check amount of winners of each match type and their distribution percentages
-        if (matchInfo.match1 == 0 && playingRound.distribution[0] > 0)
-            nextPot += (currentPot * playingRound.distribution[0]) / 100;
-        if (matchInfo.match2 == 0 && playingRound.distribution[1] > 0)
-            nextPot += (currentPot * playingRound.distribution[1]) / 100;
-        if (matchInfo.match3 == 0 && playingRound.distribution[2] > 0)
-            nextPot += (currentPot * playingRound.distribution[2]) / 100;
-        if (matchInfo.match4 == 0 && playingRound.distribution[3] > 0)
-            nextPot += (currentPot * playingRound.distribution[3]) / 100;
-        if (matchInfo.match5 == 0 && playingRound.distribution[4] > 0)
-            nextPot += (currentPot * playingRound.distribution[4]) / 100;
+        // if (matchInfo.match1 == 0 && playingRound.distribution[0] > 0)
+        //     nextPot += (currentPot * playingRound.distribution[0]) / 100;
+        // if (matchInfo.match2 == 0 && playingRound.distribution[1] > 0)
+        //     nextPot += (currentPot * playingRound.distribution[1]) / 100;
+        if (matchInfo.match3 == 0) {
+            nextPot += playingRound.distribution[0];
+            nextRound.distribution[0] = playingRound.distribution[0];
+        }
+        if (matchInfo.match4 == 0) {
+            nextPot += playingRound.distribution[1];
+            nextRound.distribution[1] = playingRound.distribution[1];
+        }
+        if (matchInfo.match5 == 0) {
+            nextPot += playingRound.distribution[2];
+            nextRound.distribution[2] = playingRound.distribution[2];
+        }
         // BURN the Currency Amount
-        uint burnAmount = (playingRound.distribution[5] * currentPot) / 100;
+        uint burnAmount = playingRound.distribution[3];
         // Send the appropriate percent to the team wallet
-        uint teamPot = (playingRound.distribution[6] * currentPot) / 100;
+        uint teamPot = playingRound.distribution[4];
         try currency.burn(burnAmount) {} catch {
             currency.transfer(DEAD_WALLET, burnAmount);
         }
@@ -644,15 +677,13 @@ contract BlazeLottery is
             matches[roundInfo[round].randomnessRequestID].winnerNumber,
             userTickets[_user][round].tickets[_userTicketIndex]
         );
-        if (_matched_ == 0) return 0;
+        if (_matched_ < 3) return 0;
         uint totalMatches = getTotalMatches(
             matches[roundInfo[round].randomnessRequestID],
             _matched_
         );
         if (totalMatches == 0) return 0;
-        return
-            (pot * roundInfo[round].distribution[_matched_ - 1]) /
-            (PERCENTAGE_BASE * totalMatches);
+        return roundInfo[round].distribution[_matched_ - 3] / totalMatches;
     }
 
     function checkTickets(
@@ -677,12 +708,12 @@ contract BlazeLottery is
                 matches[rndId].winnerNumber,
                 userTickets[_user][round].tickets[ticketIndex]
             );
-            if (_matched_ == 0) continue;
+            if (_matched_ < 3) continue;
             uint totalMatches = getTotalMatches(matches[rndId], _matched_);
             if (totalMatches == 0) continue;
             totalReward +=
-                (pot * roundInfo[round].distribution[_matched_ - 1]) /
-                (PERCENTAGE_BASE * totalMatches);
+                roundInfo[round].distribution[_matched_ - 3] /
+                totalMatches;
         }
         return totalReward;
     }
@@ -714,5 +745,15 @@ contract BlazeLottery is
         uint64 ticket2
     ) external pure returns (uint8) {
         return _compareTickets(ticket1, ticket2);
+    }
+
+    function roundDistribution(
+        uint round
+    ) external view returns (uint[] memory) {
+        uint[] memory distribution = new uint[](5);
+        for (uint i = 0; i < 5; i++) {
+            distribution[i] = roundInfo[round].distribution[i];
+        }
+        return distribution;
     }
 }
