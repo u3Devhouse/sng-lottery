@@ -43,6 +43,7 @@ error BlazeLot__TransferFailed();
 error BlazeLot__InvalidClaim();
 error BlazeLot__DuplicateTicketIdClaim(uint _round, uint _ticketIndex);
 error BlazeLot__InvalidClaimMatch(uint ticketIndex);
+error BlazeLot__InvalidDistribution(uint totalDistribution);
 
 contract BlazeLottery is
     Ownable,
@@ -93,6 +94,9 @@ contract BlazeLottery is
     mapping(address _user => mapping(uint _round => UserTickets _all))
         private userTickets;
 
+    address[] public acceptedTokens; // Tokens accepted for buying tickets
+    // We will accept BLZE, ETH, SHIB, and USDC
+    // SHIB will be the only unique one where we will send a portion to the burn address
     uint[5] public distributionPercentages; // This percentage allocates to the different distribution amounts per ROUND
     // [match1, match2, match3, match4, match5, burn, team]
     // 25% Match 5
@@ -374,6 +378,13 @@ contract BlazeLottery is
             customDistribution[2] = distributionPercentages[2];
             customDistribution[3] = distributionPercentages[3];
             customDistribution[4] = distributionPercentages[4];
+        } else {
+            uint totalPercentage;
+            for (uint i = 0; i < 5; i++) {
+                totalPercentage += customDistribution[i];
+            }
+            if (totalPercentage != PERCENTAGE_BASE)
+                revert BlazeLot__InvalidDistribution(totalPercentage);
         }
         RoundInfo storage playingRound = roundInfo[round];
         for (uint i = 0; i < 5; i++) {

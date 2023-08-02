@@ -71,6 +71,18 @@ describe("Lottery", function ()
       expect(dist1Info[ 3 ]).to.equal(parseEther("2000"));
       expect(dist1Info[ 4 ]).to.equal(parseEther("500"));
     })
+    it("Should adjust the pot with custom distribution amounts", async () =>{
+      const { lottery, mockToken, owner } = await loadFixture(setup);
+      await mockToken.connect(owner).approve(lottery.address, parseEther("10000"))
+      await lottery.connect(owner).addToPot(parseEther("100"), 1, [25,15,20,35,5]);
+      const dist1Info = await lottery.roundDistribution(1)
+      expect(dist1Info[ 0 ]).to.equal(parseEther("25"));
+      expect(dist1Info[ 1 ]).to.equal(parseEther("15"));
+      expect(dist1Info[ 2 ]).to.equal(parseEther("20"));
+      expect(dist1Info[ 3 ]).to.equal(parseEther("35"));
+      expect(dist1Info[ 4 ]).to.equal(parseEther("5"));
+      await expect(lottery.connect(owner).addToPot(parseEther("100"), 1, [25,15,20,35,15])).to.be.revertedWithCustomError(lottery, "BlazeLot__InvalidDistribution").withArgs(110);
+    })
   })
 
   describe("Owner Functions", () =>
