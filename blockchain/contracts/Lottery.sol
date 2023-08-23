@@ -519,9 +519,6 @@ contract BlazeLottery is
         }
     }
 
-    //-------------------------------------------------------------------------
-    //    PUBLIC FUNCTIONS
-    //-------------------------------------------------------------------------
     function addToPot(
         uint amount,
         uint round,
@@ -531,6 +528,45 @@ contract BlazeLottery is
         _addToPot(amount, round, customDistribution);
     }
 
+    //-------------------------------------------------------------------------
+    //    PUBLIC FUNCTIONS
+    //-------------------------------------------------------------------------
+
+    /**
+     * @notice End the current round
+     * @dev this function can be called by anyone as long as the conditions to end the round are met
+     */
+    function endRound() public {
+        RoundInfo storage playingRound = roundInfo[currentRound];
+        // Check that endRound of current Round is passed
+        if (
+            block.timestamp > playingRound.endRound &&
+            playingRound.active &&
+            playingRound.randomnessRequestID == 0
+        ) {
+            playingRound.active = false;
+            emit RoundEnded(currentRound);
+            if (playingRound.ticketsBought == 0) {
+                rolloverAmount(currentRound, matches[0]);
+                newRound(playingRound);
+            } else {
+                uint requestId = VRFCoordinatorV2Interface(vrfCoordinator)
+                    .requestRandomWords(
+                        keyHash,
+                        subscriptionId,
+                        minimumRequestConfirmations,
+                        callbackGasLimit,
+                        1
+                    );
+                playingRound.randomnessRequestID = requestId;
+                matches[requestId].roundId = currentRound;
+            }
+        } else revert BlazeLot__InvalidRoundEndConditions();
+    }
+
+    //-------------------------------------------------------------------------
+    //    INTERNAL FUNCTIONS
+    //-------------------------------------------------------------------------
     /**
      * @notice Add Blaze to the POT of the selected round
      * @param amount Amount of Blaze to add to the pot
@@ -575,41 +611,6 @@ contract BlazeLottery is
         emit AddToPot(msg.sender, amount, round);
     }
 
-    /**
-     * @notice End the current round
-     * @dev this function can be called by anyone as long as the conditions to end the round are met
-     */
-    function endRound() public {
-        RoundInfo storage playingRound = roundInfo[currentRound];
-        // Check that endRound of current Round is passed
-        if (
-            block.timestamp > playingRound.endRound &&
-            playingRound.active &&
-            playingRound.randomnessRequestID == 0
-        ) {
-            playingRound.active = false;
-            emit RoundEnded(currentRound);
-            if (playingRound.ticketsBought == 0) {
-                rolloverAmount(currentRound, matches[0]);
-                newRound(playingRound);
-            } else {
-                uint requestId = VRFCoordinatorV2Interface(vrfCoordinator)
-                    .requestRandomWords(
-                        keyHash,
-                        subscriptionId,
-                        minimumRequestConfirmations,
-                        callbackGasLimit,
-                        1
-                    );
-                playingRound.randomnessRequestID = requestId;
-                matches[requestId].roundId = currentRound;
-            }
-        } else revert BlazeLot__InvalidRoundEndConditions();
-    }
-
-    //-------------------------------------------------------------------------
-    //    INTERNAL FUNCTIONS
-    //-------------------------------------------------------------------------
     function fulfillRandomWords(
         uint requestId,
         uint256[] memory randomWords
