@@ -20,6 +20,7 @@ import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@chainlink/contracts/src/v0.8/AutomationCompatible.sol";
 import "@chainlink/contracts/src/v0.8/VRFConsumerBaseV2.sol";
 import "@chainlink/contracts/src/v0.8/interfaces/VRFCoordinatorV2Interface.sol";
+import {IUniswapV2Pair} from "./interfaces/IUniswap.sol";
 
 //-------------------------------------------------------------------------
 //    INTERFACES
@@ -44,6 +45,10 @@ error BlazeLot__InvalidClaim();
 error BlazeLot__DuplicateTicketIdClaim(uint _round, uint _ticketIndex);
 error BlazeLot__InvalidClaimMatch(uint ticketIndex);
 error BlazeLot__InvalidDistribution(uint totalDistribution);
+error BlazeLot__InvalidToken();
+error BlazeLot__InvalidETHAmount();
+error BlazeLot__InvalidCurrencyClaim();
+error BlazeLot__InvalidTokenPair();
 
 contract BlazeLottery is
     Ownable,
@@ -77,6 +82,16 @@ contract BlazeLottery is
         uint64 winnerNumber; // We'll need to process this so it matches the same format as the tickets
         bool completed;
     }
+    struct AcceptedTokens {
+        uint price;
+        uint match3;
+        uint match4;
+        uint match5;
+        uint dev;
+        uint burn;
+        address v2Pair;
+        bool accepted;
+    }
     //-------------------------------------------------------------------------
     //    State Variables
     //-------------------------------------------------------------------------
@@ -87,6 +102,10 @@ contract BlazeLottery is
     // mapping(uint => address[]) private roundUsers;
     // mapping(address  => mapping(uint => UserTickets))
     //     private userTickets;
+    // We will accept BLZE, ETH, SHIB, and USDC
+    mapping(address _token => AcceptedTokens _acceptedTokens)
+        public acceptedTokens;
+
     mapping(address _upkeep => bool _enabled) public upkeeper;
     mapping(uint _randomnessRequestID => Matches _winnerMatches) public matches;
     mapping(uint _roundId => RoundInfo) public roundInfo;
@@ -94,9 +113,12 @@ contract BlazeLottery is
     mapping(address _user => mapping(uint _round => UserTickets _all))
         private userTickets;
 
-    address[] public acceptedTokens; // Tokens accepted for buying tickets
-    // We will accept BLZE, ETH, SHIB, and USDC
-    // SHIB will be the only unique one where we will send a portion to the burn address
+    address private constant WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
+    address public constant SHIB = 0x95aD61b0a150d79219dCF64E1E6Cc01f0B64C4cE;
+    IUniswapV2Pair private mainPair =
+        IUniswapV2Pair(0x6BfCDA57Eff355A1BfFb76c584Fea20188B12166);
+    address private immutable OTCWallet;
+
     uint[5] public distributionPercentages; // This percentage allocates to the different distribution amounts per ROUND
     // [match1, match2, match3, match4, match5, burn, team]
     // 25% Match 5
@@ -108,6 +130,7 @@ contract BlazeLottery is
     // 5%  Team
     address public constant DEAD_WALLET =
         0x000000000000000000000000000000000000dEaD;
+    address public burnWallet;
     //-------------------------------------------------------------------------
     //    VRF Config Variables
     //-------------------------------------------------------------------------
@@ -126,7 +149,6 @@ contract BlazeLottery is
     uint64 public constant BIT_8_MASK = 0x00000000000000FF;
     uint64 public constant BIT_6_MASK = 0x000000000000003F;
     uint8 public constant BIT_1_MASK = 0x01;
-    bool public roundIsActive;
 
     //-------------------------------------------------------------------------
     //    Events
@@ -140,12 +162,30 @@ contract BlazeLottery is
     event UpkeeperSet(address indexed upkeeper, bool isUpkeeper);
     event RewardClaimed(address indexed _user, uint rewardAmount);
     event RoundDurationSet(uint _oldDuration, uint _newDuration);
+    event TransferFailed(address _to, uint _amount);
+    event AltDistributionChanged(
+        address _token,
+        uint m3,
+        uint m4,
+        uint m5,
+        uint dev,
+        uint burn
+    );
+    event AltAcceptanceChanged(address indexed _token, bool status);
+    event EditAltPrice(address _token, uint _newPrice);
 
     //-------------------------------------------------------------------------
     //    Modifiers
     //-------------------------------------------------------------------------
     modifier onlyUpkeeper() {
         if (!upkeeper[msg.sender]) revert BlazeLot__InvalidUpkeeper();
+        _;
+    }
+
+    modifier activeRound() {
+        RoundInfo storage playingRound = roundInfo[currentRound];
+        if (!playingRound.active || block.timestamp > playingRound.endRound)
+            revert BlazeLot__RoundInactive(currentRound);
         _;
     }
 
@@ -157,8 +197,11 @@ contract BlazeLottery is
         address _vrfCoordinator,
         bytes32 _keyHash,
         uint64 _subscriptionId,
-        address _team
+        address _team,
+        address _burnWallet,
+        address _otcWallet
     ) VRFConsumerBaseV2(_vrfCoordinator) {
+        burnWallet = _burnWallet;
         // _tokenAccepted is BLZ token
         currency = IERC20Burnable(_tokenAccepted);
 
@@ -169,11 +212,100 @@ contract BlazeLottery is
 
         distributionPercentages = [25, 25, 25, 20, 5];
         teamWallet = _team;
+        acceptedTokens[SHIB] = AcceptedTokens({
+            price: 1_000_000 ether,
+            match3: 25,
+            match4: 25,
+            match5: 25,
+            dev: 5,
+            burn: 20,
+            v2Pair: 0x811beEd0119b4AfCE20D2583EB608C6F7AF1954f,
+            accepted: true
+        });
+        acceptedTokens[address(0)] = AcceptedTokens({
+            price: 0.001 ether,
+            match3: 25,
+            match4: 25,
+            match5: 25,
+            dev: 5,
+            burn: 20,
+            v2Pair: address(0),
+            accepted: true
+        });
+        OTCWallet = _otcWallet;
     }
 
     //-------------------------------------------------------------------------
     //    EXTERNAL Functions
     //-------------------------------------------------------------------------
+    /**
+     * @notice Buy tickets with ALT tokens or ETH
+     * @param tickets Array of tickets to buy. The tickets need to have 5 numbers each spanning 8 bits in length
+     * @param token Address of the token to use to buy tickets
+     * @dev BLZE buys not accepted here
+     */
+    function buyTicketsWithAltTokens(
+        uint64[] calldata tickets,
+        address token
+    ) external payable nonReentrant activeRound {
+        AcceptedTokens storage altToken = acceptedTokens[token];
+        // Make sure token is approved token
+        if (!altToken.accepted) revert BlazeLot__InvalidToken();
+        uint price = altToken.price * tickets.length;
+        uint toBurn = (price * altToken.burn) / PERCENTAGE_BASE;
+        uint devAmount = (price * altToken.dev) / PERCENTAGE_BASE;
+        uint toPot = price - toBurn - devAmount;
+        // if token = address(0) then we're using ETH
+        if (token == address(0)) {
+            if (msg.value < price) revert BlazeLot__InvalidETHAmount();
+            // Send ETH to burn wallet
+            (bool succ, ) = payable(burnWallet).call{value: toBurn}("");
+            if (!succ) emit TransferFailed(burnWallet, toBurn);
+            (succ, ) = payable(teamWallet).call{value: devAmount}("");
+            if (!succ) emit TransferFailed(teamWallet, devAmount);
+            (uint reserve0, uint reserve1, ) = mainPair.getReserves();
+            uint toBuy = (toPot * reserve0) / reserve1;
+            // Buy BLZE from OTC wallet
+            currency.transferFrom(OTCWallet, address(this), toBuy);
+            (succ, ) = payable(OTCWallet).call{value: toPot}("");
+            if (!succ) emit TransferFailed(OTCWallet, toPot);
+            uint[] memory dist = new uint[](5);
+            dist[0] = altToken.match3;
+            dist[1] = altToken.match4;
+            dist[2] = altToken.match5;
+            dist[3] = 0;
+            dist[4] = 0;
+            _addToPot(toBuy, currentRound, dist);
+        } else {
+            // Send token to burn wallet
+            IERC20(token).transferFrom(msg.sender, burnWallet, toBurn);
+            IERC20(token).transferFrom(msg.sender, teamWallet, devAmount);
+            IERC20(token).transferFrom(msg.sender, OTCWallet, toPot);
+            // Buy BLZE from OTC wallet
+            // get token to ETH price using v2Pair
+            (uint reserve0, uint reserve1, ) = IUniswapV2Pair(altToken.v2Pair)
+                .getReserves();
+            address token0 = IUniswapV2Pair(altToken.v2Pair).token0();
+            uint toBuy = 0;
+            if (token0 == WETH) toBuy = (reserve0 * toPot) / reserve1;
+            else toBuy = (reserve1 * toPot) / reserve0;
+
+            (reserve0, reserve1, ) = mainPair.getReserves();
+
+            toBuy = (toBuy * reserve0) / reserve1;
+
+            currency.transferFrom(OTCWallet, address(this), toBuy);
+            uint[] memory dist = new uint[](5);
+            dist[0] = altToken.match3;
+            dist[1] = altToken.match4;
+            dist[2] = altToken.match5;
+            dist[3] = 0;
+            dist[4] = 0;
+            _addToPot(toBuy, currentRound, dist);
+        }
+        // Buy Tickets
+        _buyTickets(tickets, 0, msg.sender);
+    }
 
     /**
      *
@@ -187,32 +319,13 @@ contract BlazeLottery is
      *      Although we will not check for this, the numbers will be be checked using bit shifting with a mask so any larger numbers will be ignored
      * @dev gas cost is reduced ludicrously, however we will be relying heavily on chainlink keepers to check for winners and get the match amount data
      */
-    function buyTickets(uint64[] calldata tickets) external nonReentrant {
+    function buyTickets(
+        uint64[] calldata tickets
+    ) external nonReentrant activeRound {
         RoundInfo storage playingRound = roundInfo[currentRound];
-        if (!playingRound.active || block.timestamp > playingRound.endRound)
-            revert BlazeLot__RoundInactive(currentRound);
-        // Check ticket array
-        uint256 ticketAmount = tickets.length;
-        if (ticketAmount == 0) {
-            revert BlazeLot__InsufficientTickets();
-        }
-        // Get payment from ticket price
-        uint256 price = playingRound.price * ticketAmount;
-
-        uint[] memory dist = new uint[](1);
-        if (price > 0) addToPot(price, currentRound, dist);
-
-        playingRound.ticketsBought += ticketAmount;
-        // Save Ticket to current Round
-        UserTickets storage user = userTickets[msg.sender][currentRound];
-        // Add user to the list of users to check for winners
-        if (user.tickets.length == 0) roundUsers[currentRound].push(msg.sender);
-
-        for (uint i = 0; i < ticketAmount; i++) {
-            user.tickets.push(tickets[i]);
-            user.claimed.push(false);
-        }
-        emit BoughtTickets(msg.sender, currentRound, ticketAmount);
+        uint potAmount = playingRound.price * tickets.length;
+        currency.transferFrom(msg.sender, address(this), potAmount);
+        _buyTickets(tickets, potAmount, msg.sender);
     }
 
     /**
@@ -273,10 +386,52 @@ contract BlazeLottery is
      * @param _roundId ID of the upcoming round to edit
      * @dev If this is not called, on round end, the price will be the same as the previous round
      */
-    function setPrice(uint256 _newPrice, uint256 _roundId) external onlyOwner {
+    function setCurrencyPrice(
+        uint256 _newPrice,
+        uint256 _roundId
+    ) external onlyOwner {
         require(_roundId > currentRound, "Invalid ID");
         roundInfo[_roundId].price = _newPrice;
         emit EditRoundPrice(_roundId, _newPrice);
+    }
+
+    function setAltPrice(uint _newPrice, address _token) external onlyOwner {
+        AcceptedTokens storage altToken = acceptedTokens[_token];
+        altToken.price = _newPrice;
+        emit EditAltPrice(_token, _newPrice);
+    }
+
+    function setAltDistribution(
+        uint m3,
+        uint m4,
+        uint m5,
+        uint dev,
+        uint burn,
+        address _token,
+        address tokenV2Pair
+    ) external onlyOwner {
+        AcceptedTokens storage altToken = acceptedTokens[_token];
+        uint totalDistribution = m3 + m4 + m5 + dev + burn;
+        if (totalDistribution != PERCENTAGE_BASE)
+            revert BlazeLot__InvalidDistribution(totalDistribution);
+        address token0 = IUniswapV2Pair(tokenV2Pair).token0();
+        address token1 = IUniswapV2Pair(tokenV2Pair).token1();
+        if (
+            (token0 != _token && token1 != _token) ||
+            (token0 != WETH && token1 != WETH)
+        ) revert BlazeLot__InvalidTokenPair();
+        altToken.v2Pair = tokenV2Pair;
+        altToken.match3 = m3;
+        altToken.match4 = m4;
+        altToken.match5 = m5;
+        altToken.dev = dev;
+        altToken.burn = burn;
+        emit AltDistributionChanged(_token, m3, m4, m5, dev, burn);
+    }
+
+    function acceptAlt(address _token, bool status) external onlyOwner {
+        acceptedTokens[_token].accepted = status;
+        emit AltAcceptanceChanged(_token, status);
     }
 
     /**
@@ -350,9 +505,32 @@ contract BlazeLottery is
         roundDuration = _newDuration;
     }
 
+    function claimNonPrizeTokens(address _token) external onlyOwner {
+        if (_token == address(currency))
+            revert BlazeLot__InvalidCurrencyClaim();
+        if (_token == address(0)) {
+            (bool succ, ) = payable(owner()).call{value: address(this).balance}(
+                ""
+            );
+            if (!succ) emit TransferFailed(owner(), address(this).balance);
+        } else {
+            IERC20 token = IERC20(_token);
+            token.transfer(owner(), token.balanceOf(address(this)));
+        }
+    }
+
     //-------------------------------------------------------------------------
     //    PUBLIC FUNCTIONS
     //-------------------------------------------------------------------------
+    function addToPot(
+        uint amount,
+        uint round,
+        uint[] memory customDistribution
+    ) external {
+        currency.transferFrom(msg.sender, address(this), amount);
+        _addToPot(amount, round, customDistribution);
+    }
+
     /**
      * @notice Add Blaze to the POT of the selected round
      * @param amount Amount of Blaze to add to the pot
@@ -364,13 +542,14 @@ contract BlazeLottery is
         // 20% Burns     3
         // 5%  Team      4
      */
-    function addToPot(
+    function _addToPot(
         uint amount,
         uint round,
         uint[] memory customDistribution
-    ) public {
+    ) internal {
         if (round < currentRound || round == 0) revert BlazeLot__InvalidRound();
         uint distributionLength = customDistribution.length;
+        uint totalPercentage = PERCENTAGE_BASE;
         if (distributionLength == 0 || distributionLength != 5) {
             customDistribution = new uint[](5);
             customDistribution[0] = distributionPercentages[0];
@@ -379,21 +558,18 @@ contract BlazeLottery is
             customDistribution[3] = distributionPercentages[3];
             customDistribution[4] = distributionPercentages[4];
         } else {
-            uint totalPercentage;
             for (uint i = 0; i < 5; i++) {
                 totalPercentage += customDistribution[i];
             }
-            if (totalPercentage != PERCENTAGE_BASE)
-                revert BlazeLot__InvalidDistribution(totalPercentage);
+            totalPercentage -= PERCENTAGE_BASE;
         }
         RoundInfo storage playingRound = roundInfo[round];
         for (uint i = 0; i < 5; i++) {
             playingRound.distribution[i] +=
                 (customDistribution[i] * amount) /
-                PERCENTAGE_BASE;
+                totalPercentage;
         }
 
-        currency.transferFrom(msg.sender, address(this), amount);
         playingRound.pot += amount;
 
         emit AddToPot(msg.sender, amount, round);
@@ -514,6 +690,37 @@ contract BlazeLottery is
     //-------------------------------------------------------------------------
     //    PRIVATE FUNCTIONS
     //-------------------------------------------------------------------------
+
+    function _buyTickets(
+        uint64[] calldata tickets,
+        uint256 potAmount,
+        address _user
+    ) private {
+        RoundInfo storage playingRound = roundInfo[currentRound];
+        if (!playingRound.active || block.timestamp > playingRound.endRound)
+            revert BlazeLot__RoundInactive(currentRound);
+        // Check ticket array
+        uint256 ticketAmount = tickets.length;
+        if (ticketAmount == 0) {
+            revert BlazeLot__InsufficientTickets();
+        }
+
+        uint[] memory dist = new uint[](1);
+        if (potAmount > 0) _addToPot(potAmount, currentRound, dist);
+
+        playingRound.ticketsBought += ticketAmount;
+        // Save Ticket to current Round
+        UserTickets storage user = userTickets[_user][currentRound];
+        // Add user to the list of users to check for winners
+        if (user.tickets.length == 0) roundUsers[currentRound].push(_user);
+
+        for (uint i = 0; i < ticketAmount; i++) {
+            user.tickets.push(tickets[i]);
+            user.claimed.push(false);
+        }
+        emit BoughtTickets(_user, currentRound, ticketAmount);
+    }
+
     function rolloverAmount(uint round, Matches storage matchInfo) private {
         RoundInfo storage playingRound = roundInfo[round];
         RoundInfo storage nextRound = roundInfo[round + 1];
@@ -541,11 +748,11 @@ contract BlazeLottery is
         uint burnAmount = playingRound.distribution[3];
         // Send the appropriate percent to the team wallet
         uint teamPot = playingRound.distribution[4];
-        try currency.burn(burnAmount) {} catch {
-            currency.transfer(DEAD_WALLET, burnAmount);
+        if (burnAmount > 0) currency.transfer(burnWallet, burnAmount);
+        if (teamPot > 0) {
+            bool succ = currency.transfer(teamWallet, teamPot);
+            if (!succ) revert BlazeLot__TransferFailed();
         }
-        bool succ = currency.transfer(teamWallet, teamPot);
-        if (!succ) revert BlazeLot__TransferFailed();
         nextRound.pot += nextPot;
         emit RolloverPot(round, nextPot);
     }
