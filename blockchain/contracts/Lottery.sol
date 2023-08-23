@@ -213,7 +213,7 @@ contract BlazeLottery is
         distributionPercentages = [25, 25, 25, 20, 5];
         teamWallet = _team;
         acceptedTokens[SHIB] = AcceptedTokens({
-            price: 1_000_000 ether,
+            price: 120_000 ether,
             match3: 25,
             match4: 25,
             match5: 25,
@@ -223,7 +223,7 @@ contract BlazeLottery is
             accepted: true
         });
         acceptedTokens[address(0)] = AcceptedTokens({
-            price: 0.001 ether,
+            price: 0.0006 ether,
             match3: 25,
             match4: 25,
             match5: 25,

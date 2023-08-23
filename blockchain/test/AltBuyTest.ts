@@ -4,7 +4,7 @@ import { expect } from "chai";
 import { ethers } from "hardhat";
 import { convertToHex } from "./utils";
 import { parseEther, parseUnits } from "ethers/lib/utils";
-import { constants } from "ethers";
+import { constants, providers } from "ethers";
 
 const USDCAddress = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
 
@@ -92,13 +92,32 @@ describe("Alt buys Lottery", function ()
     await usdc.connect(user1).approve(lottery.address, ethers.utils.parseEther("1000"))
     await lottery.connect(user1).buyTicketsWithAltTokens([ticketToBuy, ticketToBuy], USDCAddress)
     expect(await mockToken.balanceOf(lottery.address)).to.be.gt(beforeBalance)
+    // console.log({
+    //   beforeBalance: beforeBalance.toString(),
+    //   afterBalance: (await mockToken.balanceOf(lottery.address)).toString(),
+    //   burnWalletBalance: (await usdc.balanceOf(burnwallet.address)).toString(),
+    //   devBalance: (await usdc.balanceOf(team.address)).toString(),
+    // })
+
+    expect((await lottery.getUserTickets(user1.address,1)).tickets).to.equal(2)
+  })
+
+  it("Should allow buy with ETH", async() => {
+    const { lottery, owner, user1, team, mockToken, usdc, burnwallet } = await setupStarted();
+    const ticketToBuy = convertToHex([ 10, 20, 30, 40, 50 ])
+    const beforeBalance = await mockToken.balanceOf(lottery.address)
+    await lottery.connect(user1).buyTicketsWithAltTokens([ticketToBuy, ticketToBuy], constants.AddressZero, { value: parseEther("0.0012") })
+
+
+    expect(await ethers.provider.getBalance(lottery.address)).to.be.lte(parseEther("0.00001"))
+    expect((await lottery.getUserTickets(user1.address,1)).tickets).to.equal(2)
+    expect(await mockToken.balanceOf(lottery.address)).to.be.gt(beforeBalance)
     console.log({
       beforeBalance: beforeBalance.toString(),
       afterBalance: (await mockToken.balanceOf(lottery.address)).toString(),
-      burnWalletBalance: (await usdc.balanceOf(burnwallet.address)).toString(),
-      devBalance: (await usdc.balanceOf(team.address)).toString(),
+      burnWalletBalance: (await ethers.provider.getBalance(burnwallet.address)).toString(),
+      devBalance: (await ethers.provider.getBalance(team.address)).toString(),
     })
 
-    expect((await lottery.getUserTickets(user1.address,1)).tickets).to.equal(2)
   })
 })
