@@ -7,6 +7,7 @@ import "dotenv/config"
 const pkey = process.env.DEPLOYER_TEST
 const sepolia_key = process.env.SEPOLIA_KEY
 const etherscan_key = process.env.ETHERSCAN_API_KEY
+const nodeapi_key = process.env.NODEREAL_API_KEY
 
 if (!pkey || !sepolia_key || !etherscan_key) {
   throw new Error("Please set your keys in a .env file");
@@ -23,6 +24,11 @@ const config: HardhatUserConfig = {
     }
   },
   networks:{
+    hardhat:{
+      forking:{
+        url: "https://rpc.ankr.com/eth" //"https://eth-mainnet.nodereal.io/v1/"+nodeapi_key,
+      }
+    },
     sepolia: {
       url: "https://eth-sepolia.g.alchemy.com/v2/"+sepolia_key,
       accounts: [pkey]
