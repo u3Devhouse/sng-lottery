@@ -9,14 +9,30 @@ import loadingGif from "@/../public/assets/loading_flame.gif";
 import {
   erc20ABI,
   useAccount,
+  useBalance,
   useContractReads,
   useContractWrite,
   usePrepareContractWrite,
   useToken,
   useWaitForTransaction,
 } from "wagmi";
-import { blazeToken, lotteryAbi, lotteryContract } from "@/data/contracts";
-import { BaseError, formatEther, parseEther, toHex, zeroAddress } from "viem";
+import {
+  ShibToken,
+  USDCToken,
+  blazeToken,
+  lotteryAbi,
+  lotteryContract,
+  uniswapV2PairAbi,
+} from "@/data/contracts";
+import {
+  BaseError,
+  formatEther,
+  formatUnits,
+  parseEther,
+  parseUnits,
+  toHex,
+  zeroAddress,
+} from "viem";
 import { useEffect, useState } from "react";
 import { useImmer } from "use-immer";
 import { BiSolidEdit } from "react-icons/bi";
@@ -24,11 +40,15 @@ import classNames from "classnames";
 import TicketNumber from "./TicketNumber";
 
 type TicketView = [number, number, number, number, number];
+type TokenTypes = "blaze" | "eth" | "shib";
 
 const BuyTicketsModal = () => {
   const { address } = useAccount();
   const { data: tokenData } = useToken({ address: blazeToken, chainId: 1 });
-  const { data: blazeBalance, refetch: balanceRefetch } = useContractReads({
+  const { data: balanceData } = useBalance({
+    address: address || zeroAddress,
+  });
+  const { data: balances, refetch: balanceRefetch } = useContractReads({
     contracts: [
       {
         address: blazeToken, //blazeToken,
@@ -42,9 +62,51 @@ const BuyTicketsModal = () => {
         functionName: "allowance",
         args: [address || zeroAddress, lotteryContract],
       },
+      {
+        address: ShibToken, //blazeToken,
+        abi: erc20ABI,
+        functionName: "balanceOf",
+        args: [address || zeroAddress],
+      },
+      {
+        address: ShibToken, //blazeToken,
+        abi: erc20ABI,
+        functionName: "allowance",
+        args: [address || zeroAddress, lotteryContract],
+      },
+      {
+        address: lotteryContract,
+        abi: lotteryAbi,
+        functionName: "acceptedTokens",
+        args: [zeroAddress],
+      },
+      {
+        address: lotteryContract,
+        abi: lotteryAbi,
+        functionName: "acceptedTokens",
+        args: [ShibToken],
+      },
+      {
+        address: USDCToken,
+        abi: erc20ABI,
+        functionName: "balanceOf",
+        args: [address || zeroAddress],
+      },
+      {
+        address: USDCToken,
+        abi: erc20ABI,
+        functionName: "allowance",
+        args: [address || zeroAddress, lotteryContract],
+      },
+      {
+        address: "0x811beEd0119b4AfCE20D2583EB608C6F7AF1954f",
+        abi: uniswapV2PairAbi,
+        functionName: "getReserves",
+      },
     ],
   });
   const roundInfo = useAtomValue(blazeInfo);
+  const [tokenToUse, setTokenToUse] = useState<TokenTypes>("blaze");
   const [openModal, setOpenModal] = useAtom(openBuyTicketModal);
   const [ticketAmount, setTicketAmount] = useState(0);
   const [allTickets, setAllTickets] = useImmer<Array<TicketView>>([]);
@@ -116,6 +178,47 @@ const BuyTicketsModal = () => {
     hash: data?.hash,
   });
 
+  const tokenInfo = {
+    blaze: {
+      wallet: (balances?.[0]?.result as bigint) || 0n,
+      allowance: (balances?.[1]?.result as bigint) || 0n,
+      decimals: 18,
+      price: roundInfo.ticketPrice,
+      tokenPrice: BigInt(Math.floor(roundInfo.price * 1e18)),
+      priceDivisor: 1e18,
+      symbol: "BLZE",
+    },
+    shib: {
+      wallet: (balances?.[2]?.result as bigint) || 0n,
+      allowance: (balances?.[3]?.result as bigint) || 0n,
+      decimals: 18,
+      price: parseEther("121000"), //((balances?.[5]?.result as bigint[]) || [])?.[0] || 0n,
+      tokenPrice:
+        ((balances?.[8]?.result as bigint[])[1] * roundInfo.ethPrice) /
+        (balances?.[8]?.result as bigint[])[0],
+      priceDivisor: 1e8,
+      symbol: "SHIB",
+    },
+    usdc: {
+      wallet: (balances?.[6]?.result as bigint) || 0n,
+      allowance: (balances?.[7]?.result as bigint) || 0n,
+      decimals: 6,
+      tokenPrice: 10n ** 18n,
+      price: parseUnits("1", 6), //((balances?.[5]?.result as bigint[]) || [])?.[0] || 0n,
+      priceDivisor: 1e6,
+      symbol: "USDC",
+    },
+    eth: {
+      wallet: (balanceData?.value as bigint) || 0n,
+      allowance: 1n,
+      decimals: 18,
+      price: parseEther("0.001"), //((balances?.[4]?.result as bigint[]) || [])?.[0] || 0n,
+      tokenPrice: roundInfo.ethPrice,
+      symbol: "ETH",
+      priceDivisor: 1e8,
+    },
+  };
+
   return (
     <dialog className="modal font-outfit" open={openModal}>
       <div className="modal-box bg-secondary-bg border-2 rounded-3xl border-golden">
@@ -144,22 +247,46 @@ const BuyTicketsModal = () => {
                 </tr>
                 <tr className="border-slate-500">
                   <td>Buy with</td>
-                  <td className="text-right">$BLZE</td>
+                  <td className="text-right">
+                    <select
+                      className="select select-sm select-primary"
+                      value={tokenToUse}
+                      onChange={(e) =>
+                        setTokenToUse(e.target.value as TokenTypes)
+                      }
+                    >
+                      <option disabled>Tokens Accepted</option>
+                      <option value="blaze">$BLZE</option>
+                      <option value="shib">$SHIB</option>
+                      <option value="usdc">$USDC</option>
+                      <option value="eth">$ETH</option>
+                    </select>
+                  </td>
                 </tr>
                 <tr className="border-slate-500">
                   <td>Ticket Price</td>
                   <td className="text-right text-golden/80">
-                    {roundInfo.ticketPrice.toLocaleString()}&nbsp;$BLZE
+                    {parseFloat(
+                      formatEther(tokenInfo[tokenToUse].price)
+                    ).toLocaleString()}
+                    &nbsp;$
+                    {tokenInfo[tokenToUse].symbol}
                   </td>
                 </tr>
                 <tr className="border-slate-500">
                   <td>Wallet</td>
                   <td className="text-right text-golden/80">
-                    {(
-                      (blazeBalance?.[0]?.result || 0n) /
-                      10n ** 18n
-                    ).toLocaleString()}
-                    &nbsp;$BLZE
+                    {parseFloat(
+                      parseFloat(
+                        (
+                          parseInt(tokenInfo[tokenToUse].wallet.toString()) /
+                          10 ** (tokenInfo[tokenToUse].decimals as number)
+                        ).toString()
+                      ).toFixed(tokenToUse === "eth" ? 6 : 0)
+                    ).toLocaleString(undefined, {
+                      maximumFractionDigits: tokenToUse === "eth" ? 6 : 0,
+                    })}
+                    &nbsp;${tokenInfo[tokenToUse].symbol}
                   </td>
                 </tr>
               </tbody>
@@ -183,17 +310,30 @@ const BuyTicketsModal = () => {
                 <tr className="border-slate-500 text-gray-500">
                   <td>Total</td>
                   <td className="text-right text-golden">
-                    {(ticketAmount * roundInfo.ticketPrice).toLocaleString()}
-                    &nbsp;$BLZE
+                    {(
+                      ticketAmount *
+                      parseFloat(
+                        formatUnits(
+                          tokenInfo[tokenToUse].price,
+                          tokenInfo[tokenToUse].decimals
+                        )
+                      )
+                    ).toLocaleString()}
+                    &nbsp;${tokenInfo[tokenToUse].symbol}
                   </td>
                 </tr>
                 <tr className="border-slate-500 text-gray-500">
                   <td>Total USD</td>
                   <td className="text-right text-primary">
                     {(
-                      ticketAmount *
-                      roundInfo.ticketPrice *
-                      roundInfo.price
+                      (ticketAmount *
+                        parseFloat(
+                          formatEther(
+                            tokenInfo[tokenToUse].price *
+                              tokenInfo[tokenToUse].tokenPrice
+                          )
+                        )) /
+                      (tokenInfo[tokenToUse].priceDivisor || 1)
                     ).toLocaleString()}
                     &nbsp;$USD
                   </td>
@@ -201,8 +341,9 @@ const BuyTicketsModal = () => {
               </tbody>
             </table>
             <div className="flex flex-row items-center justify-center gap-x-4 p-4">
-              {parseFloat(formatEther(blazeBalance?.[1]?.result || 0n)) >
-              (ticketAmount || 1) * roundInfo?.ticketPrice ? (
+              {parseFloat(formatEther(tokenInfo[tokenToUse].allowance)) >
+              (ticketAmount || 1) *
+                parseFloat(formatEther(tokenInfo[tokenToUse].price)) ? (
                 <>
                   <button
                     className="btn btn-secondary btn-sm min-w-[126px]"

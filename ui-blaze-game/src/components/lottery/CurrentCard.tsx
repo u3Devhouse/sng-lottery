@@ -104,16 +104,17 @@ const Card = () => {
     ],
   });
 
-  const roundIsActive = roundInfo?.[0]?.result?.[5] || false;
+  const roundIsActive = (roundInfo?.[0]?.result as bigint[])?.[5] || false;
 
   useEffect(() => {
     setBlazeInfo({
       price:
-        (Number(roundInfo?.[2]?.result?.[1] || 0) *
-          (Number(roundInfo?.[3]?.result?.[1] || 0n) / 1e8)) /
-        Number(roundInfo?.[2]?.result?.[0] || 1),
-      ticketPrice: Number(formatEther(roundInfo?.[0]?.result?.[2] || 0n)),
+        (Number((roundInfo?.[2]?.result as bigint[])?.[1] || 0) *
+          (Number((roundInfo?.[3]?.result as bigint[])?.[1] || 0n) / 1e8)) /
+        Number((roundInfo?.[2]?.result as bigint[])?.[0] || 1),
+      ticketPrice: (roundInfo?.[0]?.result as bigint[])?.[2] || 0n,
       currentRound: Number(currentRound?.toString() || 0),
+      ethPrice: (roundInfo?.[3]?.result as bigint[])?.[1] || 0n,
     });
   }, [setBlazeInfo, roundInfo, currentRound]);
 
@@ -125,10 +126,11 @@ const Card = () => {
     return () => clearInterval(interval);
   });
 
-  const ethPrice = Number(roundInfo?.[3]?.result?.[1] || 0n) / 1e8;
+  const ethPrice =
+    Number((roundInfo?.[3]?.result as bigint[])?.[1] || 0n) / 1e8;
   const blazePrice =
-    (Number(roundInfo?.[2]?.result?.[1] || 0) * ethPrice) /
-    Number(roundInfo?.[2]?.result?.[0] || 1);
+    (Number((roundInfo?.[2]?.result as bigint[])?.[1] || 0) * ethPrice) /
+    Number((roundInfo?.[2]?.result as bigint[])?.[0] || 1);
 
   const detailCollapseRef = useRef<HTMLInputElement>(null);
 
