@@ -19,10 +19,12 @@ import {
 import {
   ShibToken,
   USDCToken,
+  USDTToken,
   blazeToken,
   lotteryAbi,
   lotteryContract,
   uniswapV2PairAbi,
+  usdtAbi,
 } from "@/data/contracts";
 import {
   BaseError,
@@ -40,7 +42,15 @@ import classNames from "classnames";
 import TicketNumber from "./TicketNumber";
 
 type TicketView = [number, number, number, number, number];
-type TokenTypes = "blaze" | "eth" | "shib";
+type TokenTypes = "blaze" | "eth" | "shib" | "usdt";
+
+const tokenAddresses = {
+  shib: ShibToken,
+  usdc: USDCToken,
+  usdt: USDTToken,
+  eth: zeroAddress,
+  blaze: blazeToken,
+} as const;
 
 const BuyTicketsModal = () => {
   const { address } = useAccount();
@@ -55,53 +65,90 @@ const BuyTicketsModal = () => {
         abi: erc20ABI,
         functionName: "balanceOf",
         args: [address || zeroAddress],
+        chainId: 1,
       },
       {
         address: blazeToken, //blazeToken,
         abi: erc20ABI,
         functionName: "allowance",
         args: [address || zeroAddress, lotteryContract],
+        chainId: 1,
       },
       {
         address: ShibToken, //blazeToken,
         abi: erc20ABI,
         functionName: "balanceOf",
         args: [address || zeroAddress],
+        chainId: 1,
       },
       {
         address: ShibToken, //blazeToken,
         abi: erc20ABI,
         functionName: "allowance",
         args: [address || zeroAddress, lotteryContract],
+        chainId: 1,
       },
       {
         address: lotteryContract,
         abi: lotteryAbi,
         functionName: "acceptedTokens",
         args: [zeroAddress],
+        chainId: 1,
       },
       {
         address: lotteryContract,
         abi: lotteryAbi,
         functionName: "acceptedTokens",
         args: [ShibToken],
+        chainId: 1,
       },
       {
         address: USDCToken,
         abi: erc20ABI,
         functionName: "balanceOf",
         args: [address || zeroAddress],
+        chainId: 1,
       },
       {
         address: USDCToken,
         abi: erc20ABI,
         functionName: "allowance",
         args: [address || zeroAddress, lotteryContract],
+        chainId: 1,
       },
       {
         address: "0x811beEd0119b4AfCE20D2583EB608C6F7AF1954f",
         abi: uniswapV2PairAbi,
         functionName: "getReserves",
+        chainId: 1,
+      },
+      {
+        address: lotteryContract,
+        abi: lotteryAbi,
+        functionName: "acceptedTokens",
+        args: [USDCToken],
+        chainId: 1,
+      },
+      {
+        address: USDTToken,
+        abi: erc20ABI,
+        functionName: "balanceOf",
+        args: [address || zeroAddress],
+        chainId: 1,
+      },
+      {
+        address: USDTToken,
+        abi: erc20ABI,
+        functionName: "allowance",
+        args: [address || zeroAddress, lotteryContract],
+        chainId: 1,
+      },
+      {
+        address: lotteryContract,
+        abi: lotteryAbi,
+        functionName: "acceptedTokens",
+        args: [USDTToken],
+        chainId: 1,
       },
     ],
   });
@@ -136,25 +183,35 @@ const BuyTicketsModal = () => {
   // --------------------
   // Approve Blaze in lottery
   // --------------------
+  const { config: approveUSDTConfig } = usePrepareContractWrite({
+    address: tokenAddresses.usdt,
+    abi: usdtAbi,
+    functionName: "approve",
+    args: [lotteryContract, parseUnits("1000000", 6)],
+  });
   const { config: approveConfig } = usePrepareContractWrite({
-    address: blazeToken, //blazeToken,
+    address: tokenAddresses[tokenToUse], //selected Token,
     abi: erc20ABI,
     functionName: "approve",
     args: [
       lotteryContract,
-      tokenData?.totalSupply.value || parseEther("10000000000000000000"),
+      tokenToUse == "usdt"
+        ? parseUnits("100000", 6)
+        : tokenData?.totalSupply.value || parseEther("10000000000000000000"),
     ],
   });
   const { write: approveWrite, data: approveTxData } =
     useContractWrite(approveConfig);
-  const {
-    data: approveReceipt,
-    isLoading: approvePendingTx,
-    isSuccess: approveSuccess,
-  } = useWaitForTransaction({ hash: approveTxData?.hash });
+  const { write: approveUSDTWrite, data: approveUSDTTxData } =
+    useContractWrite(approveUSDTConfig);
+
+  const { isLoading: approvePendingTx, isSuccess: approveSuccess } =
+    useWaitForTransaction({ hash: approveTxData?.hash });
+  const { isLoading: approveUSDTPendingTx, isSuccess: approveUSDTSuccess } =
+    useWaitForTransaction({ hash: approveUSDTTxData?.hash });
 
   useEffect(() => {
-    if (approveSuccess) {
+    if (approveSuccess || approveUSDTSuccess) {
       const interval = setInterval(balanceRefetch, 15000);
       return () => clearInterval(interval);
     }
@@ -173,10 +230,33 @@ const BuyTicketsModal = () => {
     args: [ticketsInHex],
   });
 
+  const { config: buyWithAltConfig } = usePrepareContractWrite({
+    address: lotteryContract,
+    abi: lotteryAbi,
+    functionName: "buyTicketsWithAltTokens",
+    args: [ticketsInHex, tokenAddresses[tokenToUse]],
+    chainId: 1,
+    value:
+      tokenToUse === "eth"
+        ? BigInt(ticketAmount) * (balances?.[4].result as bigint[])?.[0] || 0n
+        : 0n,
+  });
+
   const { write, data, error, isError } = useContractWrite(config);
+  const {
+    write: buyWithAlt,
+    data: altData,
+    error: altError,
+    isError: isBuyWithAltError,
+  } = useContractWrite(buyWithAltConfig);
   const { isSuccess } = useWaitForTransaction({
     hash: data?.hash,
   });
+  const { isSuccess: isBuyWithAltSuccess } = useWaitForTransaction({
+    hash: altData?.hash,
+  });
+
+  console.log({ balances });
 
   const tokenInfo = {
     blaze: {
@@ -192,10 +272,11 @@ const BuyTicketsModal = () => {
       wallet: (balances?.[2]?.result as bigint) || 0n,
       allowance: (balances?.[3]?.result as bigint) || 0n,
       decimals: 18,
-      price: parseEther("121000"), //((balances?.[5]?.result as bigint[]) || [])?.[0] || 0n,
+      price: ((balances?.[5]?.result as bigint[]) || [])?.[0] || 0n,
       tokenPrice:
-        ((balances?.[8]?.result as bigint[])[1] * roundInfo.ethPrice) /
-        (balances?.[8]?.result as bigint[])[0],
+        (((balances?.[8]?.result as bigint[])?.[1] || 0n) *
+          roundInfo.ethPrice) /
+        ((balances?.[8]?.result as bigint[])?.[0] || 1n),
       priceDivisor: 1e8,
       symbol: "SHIB",
     },
@@ -204,15 +285,24 @@ const BuyTicketsModal = () => {
       allowance: (balances?.[7]?.result as bigint) || 0n,
       decimals: 6,
       tokenPrice: 10n ** 18n,
-      price: parseUnits("1", 6), //((balances?.[5]?.result as bigint[]) || [])?.[0] || 0n,
+      price: ((balances?.[9]?.result as bigint[]) || [])?.[0] || 0n,
       priceDivisor: 1e6,
       symbol: "USDC",
+    },
+    usdt: {
+      wallet: (balances?.[10]?.result as bigint) || 0n,
+      allowance: (balances?.[11]?.result as bigint) || 0n,
+      decimals: 6,
+      tokenPrice: 10n ** 18n,
+      price: ((balances?.[12]?.result as bigint[]) || [])?.[0] || 0n,
+      priceDivisor: 1e6,
+      symbol: "USDT",
     },
     eth: {
       wallet: (balanceData?.value as bigint) || 0n,
       allowance: 1n,
       decimals: 18,
-      price: parseEther("0.001"), //((balances?.[4]?.result as bigint[]) || [])?.[0] || 0n,
+      price: ((balances?.[4]?.result as bigint[]) || [])?.[0] || 0n,
       tokenPrice: roundInfo.ethPrice,
       symbol: "ETH",
       priceDivisor: 1e8,
@@ -258,6 +348,7 @@ const BuyTicketsModal = () => {
                       <option disabled>Tokens Accepted</option>
                       <option value="blaze">$BLZE</option>
                       <option value="shib">$SHIB</option>
+                      <option value="usdt">$USDT</option>
                       <option value="usdc">$USDC</option>
                       <option value="eth">$ETH</option>
                     </select>
@@ -267,7 +358,10 @@ const BuyTicketsModal = () => {
                   <td>Ticket Price</td>
                   <td className="text-right text-golden/80">
                     {parseFloat(
-                      formatEther(tokenInfo[tokenToUse].price)
+                      formatUnits(
+                        tokenInfo[tokenToUse].price,
+                        tokenInfo[tokenToUse].decimals
+                      )
                     ).toLocaleString()}
                     &nbsp;$
                     {tokenInfo[tokenToUse].symbol}
@@ -278,10 +372,10 @@ const BuyTicketsModal = () => {
                   <td className="text-right text-golden/80">
                     {parseFloat(
                       parseFloat(
-                        (
-                          parseInt(tokenInfo[tokenToUse].wallet.toString()) /
-                          10 ** (tokenInfo[tokenToUse].decimals as number)
-                        ).toString()
+                        formatUnits(
+                          tokenInfo[tokenToUse].wallet,
+                          tokenInfo[tokenToUse].decimals
+                        )
                       ).toFixed(tokenToUse === "eth" ? 6 : 0)
                     ).toLocaleString(undefined, {
                       maximumFractionDigits: tokenToUse === "eth" ? 6 : 0,
@@ -342,8 +436,9 @@ const BuyTicketsModal = () => {
             </table>
             <div className="flex flex-row items-center justify-center gap-x-4 p-4">
               {parseFloat(formatEther(tokenInfo[tokenToUse].allowance)) >
-              (ticketAmount || 1) *
-                parseFloat(formatEther(tokenInfo[tokenToUse].price)) ? (
+                (ticketAmount || 1) *
+                  parseFloat(formatEther(tokenInfo[tokenToUse].price)) ||
+              tokenToUse == "eth" ? (
                 <>
                   <button
                     className="btn btn-secondary btn-sm min-w-[126px]"
@@ -383,9 +478,14 @@ const BuyTicketsModal = () => {
                 <button
                   className={classNames(
                     "btn btn-secondary btn-sm min-w-[126px]",
-                    approvePendingTx && "loading btn-disabled loading-spinner"
+                    (approvePendingTx || approveUSDTPendingTx) &&
+                      "loading btn-disabled loading-spinner"
                   )}
-                  onClick={(e) => approveWrite?.()}
+                  onClick={() =>
+                    tokenToUse == "usdt"
+                      ? approveUSDTWrite?.()
+                      : approveWrite?.()
+                  }
                 >
                   Approve Game
                 </button>
@@ -408,9 +508,15 @@ const BuyTicketsModal = () => {
               <button
                 className="btn btn-secondary"
                 onClick={() => {
-                  if (!write) return;
-                  setView(3);
-                  write();
+                  if (tokenToUse !== "blaze") {
+                    if (!buyWithAlt) return;
+                    setView(3);
+                    buyWithAlt();
+                  } else {
+                    if (!write) return;
+                    setView(3);
+                    write();
+                  }
                 }}
               >
                 Buy Now
@@ -518,10 +624,10 @@ const BuyTicketsModal = () => {
               </a>
             </div>
 
-            {isSuccess && (
+            {(isSuccess || isBuyWithAltSuccess) && (
               <div className="text-green-600/80 text-3xl">Tickets Bought!</div>
             )}
-            {isError && (
+            {(isError || isBuyWithAltError) && (
               <div className="text-red-600/80">
                 {(error as BaseError)?.shortMessage}
               </div>
