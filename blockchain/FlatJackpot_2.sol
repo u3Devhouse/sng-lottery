@@ -1,5 +1,35 @@
-////// SPDX-License-Identifier-FLATTEN-SUPPRESS-WARNING: MIT
-pragma solidity ^0.8.0;
+// File @chainlink/contracts/src/v0.8/AutomationBase.sol@v0.6.1
+
+// SPDX-License-Identifier-FLATTEN-SUPPRESS-WARNING: MIT
+// pragma solidity ^0.8.0;
+
+contract AutomationBase {
+    error OnlySimulatedBackend();
+
+    /**
+     * @notice method that allows it to be simulated via eth_call by checking that
+     * the sender is the zero address.
+     */
+    function preventExecution() internal view {
+        if (tx.origin != address(0)) {
+            revert OnlySimulatedBackend();
+        }
+    }
+
+    /**
+     * @notice modifier that allows it to be simulated via eth_call by checking
+     * that the sender is the zero address.
+     */
+    modifier cannotExecute() {
+        preventExecution();
+        _;
+    }
+}
+
+// File @chainlink/contracts/src/v0.8/interfaces/AutomationCompatibleInterface.sol@v0.6.1
+
+// SPDX-License-Identifier-FLATTEN-SUPPRESS-WARNING: MIT
+// pragma solidity ^0.8.0;
 
 interface AutomationCompatibleInterface {
     /**
@@ -42,58 +72,19 @@ interface AutomationCompatibleInterface {
     function performUpkeep(bytes calldata performData) external;
 }
 
-////// SPDX-License-Identifier-FLATTEN-SUPPRESS-WARNING: MIT
+// File @chainlink/contracts/src/v0.8/AutomationCompatible.sol@v0.6.1
+
+// SPDX-License-Identifier-FLATTEN-SUPPRESS-WARNING: MIT
 pragma solidity ^0.8.0;
 
-contract AutomationBase {
-    error OnlySimulatedBackend();
+abstract contract AutomationCompatible is
+    AutomationBase,
+    AutomationCompatibleInterface
+{}
 
-    /**
-     * @notice method that allows it to be simulated via eth_call by checking that
-     * the sender is the zero address.
-     */
-    function preventExecution() internal view {
-        if (tx.origin != address(0)) {
-            revert OnlySimulatedBackend();
-        }
-    }
+// File @chainlink/contracts/src/v0.8/interfaces/VRFCoordinatorV2Interface.sol@v0.6.1
 
-    /**
-     * @notice modifier that allows it to be simulated via eth_call by checking
-     * that the sender is the zero address.
-     */
-    modifier cannotExecute() {
-        preventExecution();
-        _;
-    }
-}
-
-////// SPDX-License-Identifier-FLATTEN-SUPPRESS-WARNING: MIT
-// OpenZeppelin Contracts v4.4.1 (utils/Context.sol)
-
-pragma solidity ^0.8.0;
-
-/**
- * @dev Provides information about the current execution context, including the
- * sender of the transaction and its data. While these are generally available
- * via msg.sender and msg.data, they should not be accessed in such a direct
- * manner, since when dealing with meta-transactions the account sending and
- * paying for execution may not be the actual sender (as far as an application
- * is concerned).
- *
- * This contract is only required for intermediate, library-like contracts.
- */
-abstract contract Context {
-    function _msgSender() internal view virtual returns (address) {
-        return msg.sender;
-    }
-
-    function _msgData() internal view virtual returns (bytes calldata) {
-        return msg.data;
-    }
-}
-
-////// SPDX-License-Identifier-FLATTEN-SUPPRESS-WARNING: MIT
+// SPDX-License-Identifier-FLATTEN-SUPPRESS-WARNING: MIT
 pragma solidity ^0.8.0;
 
 interface VRFCoordinatorV2Interface {
@@ -220,7 +211,9 @@ interface VRFCoordinatorV2Interface {
     function pendingRequestExists(uint64 subId) external view returns (bool);
 }
 
-////// SPDX-License-Identifier-FLATTEN-SUPPRESS-WARNING: MIT
+// File @chainlink/contracts/src/v0.8/VRFConsumerBaseV2.sol@v0.6.1
+
+// SPDX-License-Identifier-FLATTEN-SUPPRESS-WARNING: MIT
 pragma solidity ^0.8.4;
 
 /** ****************************************************************************
@@ -329,7 +322,7 @@ abstract contract VRFConsumerBaseV2 {
 
     /**
      * @notice fulfillRandomness handles the VRF response. Your contract must
-     * @notice implement it. See "SECURITY CONSIDERATIONS" above for ////important
+     * @notice implement it. See "SECURITY CONSIDERATIONS" above for important
      * @notice principles to keep in mind when implementing your fulfillRandomness
      * @notice method.
      *
@@ -360,193 +353,39 @@ abstract contract VRFConsumerBaseV2 {
     }
 }
 
-////// SPDX-License-Identifier-FLATTEN-SUPPRESS-WARNING: MIT
-pragma solidity ^0.8.0;
+// File @openzeppelin/contracts/utils/Context.sol@v4.9.0
 
-////import "./AutomationBase.sol";
-////import "./interfaces/AutomationCompatibleInterface.sol";
-
-abstract contract AutomationCompatible is
-    AutomationBase,
-    AutomationCompatibleInterface
-{
-
-}
-
-////// SPDX-License-Identifier-FLATTEN-SUPPRESS-WARNING: MIT
-// OpenZeppelin Contracts (last updated v4.9.0) (security/ReentrancyGuard.sol)
+// SPDX-License-Identifier-FLATTEN-SUPPRESS-WARNING: MIT
+// OpenZeppelin Contracts v4.4.1 (utils/Context.sol)
 
 pragma solidity ^0.8.0;
 
 /**
- * @dev Contract module that helps prevent reentrant calls to a function.
+ * @dev Provides information about the current execution context, including the
+ * sender of the transaction and its data. While these are generally available
+ * via msg.sender and msg.data, they should not be accessed in such a direct
+ * manner, since when dealing with meta-transactions the account sending and
+ * paying for execution may not be the actual sender (as far as an application
+ * is concerned).
  *
- * Inheriting from `ReentrancyGuard` will make the {nonReentrant} modifier
- * available, which can be applied to functions to make sure there are no nested
- * (reentrant) calls to them.
- *
- * Note that because there is a single `nonReentrant` guard, functions marked as
- * `nonReentrant` may not call one another. This can be worked around by making
- * those functions `private`, and then adding `external` `nonReentrant` entry
- * points to them.
- *
- * TIP: If you would like to learn more about reentrancy and alternative ways
- * to protect against it, check out our blog post
- * https://blog.openzeppelin.com/reentrancy-after-istanbul/[Reentrancy After Istanbul].
+ * This contract is only required for intermediate, library-like contracts.
  */
-abstract contract ReentrancyGuard {
-    // Booleans are more expensive than uint256 or any type that takes up a full
-    // word because each write operation emits an extra SLOAD to first read the
-    // slot's contents, replace the bits taken up by the boolean, and then write
-    // back. This is the compiler's defense against contract upgrades and
-    // pointer aliasing, and it cannot be disabled.
-
-    // The values being non-zero value makes deployment a bit more expensive,
-    // but in exchange the refund on every call to nonReentrant will be lower in
-    // amount. Since refunds are capped to a percentage of the total
-    // transaction's gas, it is best to keep them low in cases like this one, to
-    // increase the likelihood of the full refund coming into effect.
-    uint256 private constant _NOT_ENTERED = 1;
-    uint256 private constant _ENTERED = 2;
-
-    uint256 private _status;
-
-    constructor() {
-        _status = _NOT_ENTERED;
+abstract contract Context {
+    function _msgSender() internal view virtual returns (address) {
+        return msg.sender;
     }
 
-    /**
-     * @dev Prevents a contract from calling itself, directly or indirectly.
-     * Calling a `nonReentrant` function from another `nonReentrant`
-     * function is not supported. It is possible to prevent this from happening
-     * by making the `nonReentrant` function external, and making it call a
-     * `private` function that does the actual work.
-     */
-    modifier nonReentrant() {
-        _nonReentrantBefore();
-        _;
-        _nonReentrantAfter();
-    }
-
-    function _nonReentrantBefore() private {
-        // On the first call to nonReentrant, _status will be _NOT_ENTERED
-        require(_status != _ENTERED, "ReentrancyGuard: reentrant call");
-
-        // Any calls to nonReentrant after this point will fail
-        _status = _ENTERED;
-    }
-
-    function _nonReentrantAfter() private {
-        // By storing the original value once again, a refund is triggered (see
-        // https://eips.ethereum.org/EIPS/eip-2200)
-        _status = _NOT_ENTERED;
-    }
-
-    /**
-     * @dev Returns true if the reentrancy guard is currently set to "entered", which indicates there is a
-     * `nonReentrant` function in the call stack.
-     */
-    function _reentrancyGuardEntered() internal view returns (bool) {
-        return _status == _ENTERED;
+    function _msgData() internal view virtual returns (bytes calldata) {
+        return msg.data;
     }
 }
 
-////// SPDX-License-Identifier-FLATTEN-SUPPRESS-WARNING: MIT
-// OpenZeppelin Contracts (last updated v4.9.0) (token/ERC20/IERC20.sol)
+// File @openzeppelin/contracts/access/Ownable.sol@v4.9.0
 
-pragma solidity ^0.8.0;
-
-/**
- * @dev Interface of the ERC20 standard as defined in the EIP.
- */
-interface IERC20 {
-    /**
-     * @dev Emitted when `value` tokens are moved from one account (`from`) to
-     * another (`to`).
-     *
-     * Note that `value` may be zero.
-     */
-    event Transfer(address indexed from, address indexed to, uint256 value);
-
-    /**
-     * @dev Emitted when the allowance of a `spender` for an `owner` is set by
-     * a call to {approve}. `value` is the new allowance.
-     */
-    event Approval(
-        address indexed owner,
-        address indexed spender,
-        uint256 value
-    );
-
-    /**
-     * @dev Returns the amount of tokens in existence.
-     */
-    function totalSupply() external view returns (uint256);
-
-    /**
-     * @dev Returns the amount of tokens owned by `account`.
-     */
-    function balanceOf(address account) external view returns (uint256);
-
-    /**
-     * @dev Moves `amount` tokens from the caller's account to `to`.
-     *
-     * Returns a boolean value indicating whether the operation succeeded.
-     *
-     * Emits a {Transfer} event.
-     */
-    function transfer(address to, uint256 amount) external returns (bool);
-
-    /**
-     * @dev Returns the remaining number of tokens that `spender` will be
-     * allowed to spend on behalf of `owner` through {transferFrom}. This is
-     * zero by default.
-     *
-     * This value changes when {approve} or {transferFrom} are called.
-     */
-    function allowance(
-        address owner,
-        address spender
-    ) external view returns (uint256);
-
-    /**
-     * @dev Sets `amount` as the allowance of `spender` over the caller's tokens.
-     *
-     * Returns a boolean value indicating whether the operation succeeded.
-     *
-     * ////IMPORTANT: Beware that changing an allowance with this method brings the risk
-     * that someone may use both the old and the new allowance by unfortunate
-     * transaction ordering. One possible solution to mitigate this race
-     * condition is to first reduce the spender's allowance to 0 and set the
-     * desired value afterwards:
-     * https://github.com/ethereum/EIPs/issues/20#issuecomment-263524729
-     *
-     * Emits an {Approval} event.
-     */
-    function approve(address spender, uint256 amount) external returns (bool);
-
-    /**
-     * @dev Moves `amount` tokens from `from` to `to` using the
-     * allowance mechanism. `amount` is then deducted from the caller's
-     * allowance.
-     *
-     * Returns a boolean value indicating whether the operation succeeded.
-     *
-     * Emits a {Transfer} event.
-     */
-    function transferFrom(
-        address from,
-        address to,
-        uint256 amount
-    ) external returns (bool);
-}
-
-////// SPDX-License-Identifier-FLATTEN-SUPPRESS-WARNING: MIT
+// SPDX-License-Identifier-FLATTEN-SUPPRESS-WARNING: MIT
 // OpenZeppelin Contracts (last updated v4.9.0) (access/Ownable.sol)
 
 pragma solidity ^0.8.0;
-
-////import "../utils/Context.sol";
 
 /**
  * @dev Contract module which provides a basic access control mechanism, where
@@ -631,7 +470,288 @@ abstract contract Ownable is Context {
     }
 }
 
-////// SPDX-License-Identifier: MIT
+// File @openzeppelin/contracts/token/ERC20/IERC20.sol@v4.9.0
+
+// SPDX-License-Identifier-FLATTEN-SUPPRESS-WARNING: MIT
+// OpenZeppelin Contracts (last updated v4.9.0) (token/ERC20/IERC20.sol)
+
+pragma solidity ^0.8.0;
+
+/**
+ * @dev Interface of the ERC20 standard as defined in the EIP.
+ */
+interface IERC20 {
+    /**
+     * @dev Emitted when `value` tokens are moved from one account (`from`) to
+     * another (`to`).
+     *
+     * Note that `value` may be zero.
+     */
+    event Transfer(address indexed from, address indexed to, uint256 value);
+
+    /**
+     * @dev Emitted when the allowance of a `spender` for an `owner` is set by
+     * a call to {approve}. `value` is the new allowance.
+     */
+    event Approval(
+        address indexed owner,
+        address indexed spender,
+        uint256 value
+    );
+
+    /**
+     * @dev Returns the amount of tokens in existence.
+     */
+    function totalSupply() external view returns (uint256);
+
+    /**
+     * @dev Returns the amount of tokens owned by `account`.
+     */
+    function balanceOf(address account) external view returns (uint256);
+
+    /**
+     * @dev Moves `amount` tokens from the caller's account to `to`.
+     *
+     * Returns a boolean value indicating whether the operation succeeded.
+     *
+     * Emits a {Transfer} event.
+     */
+    function transfer(address to, uint256 amount) external returns (bool);
+
+    /**
+     * @dev Returns the remaining number of tokens that `spender` will be
+     * allowed to spend on behalf of `owner` through {transferFrom}. This is
+     * zero by default.
+     *
+     * This value changes when {approve} or {transferFrom} are called.
+     */
+    function allowance(
+        address owner,
+        address spender
+    ) external view returns (uint256);
+
+    /**
+     * @dev Sets `amount` as the allowance of `spender` over the caller's tokens.
+     *
+     * Returns a boolean value indicating whether the operation succeeded.
+     *
+     * IMPORTANT: Beware that changing an allowance with this method brings the risk
+     * that someone may use both the old and the new allowance by unfortunate
+     * transaction ordering. One possible solution to mitigate this race
+     * condition is to first reduce the spender's allowance to 0 and set the
+     * desired value afterwards:
+     * https://github.com/ethereum/EIPs/issues/20#issuecomment-263524729
+     *
+     * Emits an {Approval} event.
+     */
+    function approve(address spender, uint256 amount) external returns (bool);
+
+    /**
+     * @dev Moves `amount` tokens from `from` to `to` using the
+     * allowance mechanism. `amount` is then deducted from the caller's
+     * allowance.
+     *
+     * Returns a boolean value indicating whether the operation succeeded.
+     *
+     * Emits a {Transfer} event.
+     */
+    function transferFrom(
+        address from,
+        address to,
+        uint256 amount
+    ) external returns (bool);
+}
+
+// File @openzeppelin/contracts/security/ReentrancyGuard.sol@v4.9.0
+
+// SPDX-License-Identifier-FLATTEN-SUPPRESS-WARNING: MIT
+// OpenZeppelin Contracts (last updated v4.9.0) (security/ReentrancyGuard.sol)
+
+pragma solidity ^0.8.0;
+
+/**
+ * @dev Contract module that helps prevent reentrant calls to a function.
+ *
+ * Inheriting from `ReentrancyGuard` will make the {nonReentrant} modifier
+ * available, which can be applied to functions to make sure there are no nested
+ * (reentrant) calls to them.
+ *
+ * Note that because there is a single `nonReentrant` guard, functions marked as
+ * `nonReentrant` may not call one another. This can be worked around by making
+ * those functions `private`, and then adding `external` `nonReentrant` entry
+ * points to them.
+ *
+ * TIP: If you would like to learn more about reentrancy and alternative ways
+ * to protect against it, check out our blog post
+ * https://blog.openzeppelin.com/reentrancy-after-istanbul/[Reentrancy After Istanbul].
+ */
+abstract contract ReentrancyGuard {
+    // Booleans are more expensive than uint256 or any type that takes up a full
+    // word because each write operation emits an extra SLOAD to first read the
+    // slot's contents, replace the bits taken up by the boolean, and then write
+    // back. This is the compiler's defense against contract upgrades and
+    // pointer aliasing, and it cannot be disabled.
+
+    // The values being non-zero value makes deployment a bit more expensive,
+    // but in exchange the refund on every call to nonReentrant will be lower in
+    // amount. Since refunds are capped to a percentage of the total
+    // transaction's gas, it is best to keep them low in cases like this one, to
+    // increase the likelihood of the full refund coming into effect.
+    uint256 private constant _NOT_ENTERED = 1;
+    uint256 private constant _ENTERED = 2;
+
+    uint256 private _status;
+
+    constructor() {
+        _status = _NOT_ENTERED;
+    }
+
+    /**
+     * @dev Prevents a contract from calling itself, directly or indirectly.
+     * Calling a `nonReentrant` function from another `nonReentrant`
+     * function is not supported. It is possible to prevent this from happening
+     * by making the `nonReentrant` function external, and making it call a
+     * `private` function that does the actual work.
+     */
+    modifier nonReentrant() {
+        _nonReentrantBefore();
+        _;
+        _nonReentrantAfter();
+    }
+
+    function _nonReentrantBefore() private {
+        // On the first call to nonReentrant, _status will be _NOT_ENTERED
+        require(_status != _ENTERED, "ReentrancyGuard: reentrant call");
+
+        // Any calls to nonReentrant after this point will fail
+        _status = _ENTERED;
+    }
+
+    function _nonReentrantAfter() private {
+        // By storing the original value once again, a refund is triggered (see
+        // https://eips.ethereum.org/EIPS/eip-2200)
+        _status = _NOT_ENTERED;
+    }
+
+    /**
+     * @dev Returns true if the reentrancy guard is currently set to "entered", which indicates there is a
+     * `nonReentrant` function in the call stack.
+     */
+    function _reentrancyGuardEntered() internal view returns (bool) {
+        return _status == _ENTERED;
+    }
+}
+
+// File contracts/interfaces/IUniswap.sol
+
+// SPDX-License-Identifier-FLATTEN-SUPPRESS-WARNING: MIT
+pragma solidity ^0.8.0;
+
+interface IUniswapV2Pair {
+    event Approval(
+        address indexed owner,
+        address indexed spender,
+        uint256 value
+    );
+    event Transfer(address indexed from, address indexed to, uint256 value);
+
+    function name() external pure returns (string memory);
+
+    function symbol() external pure returns (string memory);
+
+    function decimals() external pure returns (uint8);
+
+    function totalSupply() external view returns (uint256);
+
+    function balanceOf(address owner) external view returns (uint256);
+
+    function allowance(
+        address owner,
+        address spender
+    ) external view returns (uint256);
+
+    function approve(address spender, uint256 value) external returns (bool);
+
+    function transfer(address to, uint256 value) external returns (bool);
+
+    function transferFrom(
+        address from,
+        address to,
+        uint256 value
+    ) external returns (bool);
+
+    function DOMAIN_SEPARATOR() external view returns (bytes32);
+
+    function PERMIT_TYPEHASH() external pure returns (bytes32);
+
+    function nonces(address owner) external view returns (uint256);
+
+    function permit(
+        address owner,
+        address spender,
+        uint256 value,
+        uint256 deadline,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) external;
+
+    event Burn(
+        address indexed sender,
+        uint256 amount0,
+        uint256 amount1,
+        address indexed to
+    );
+    event Swap(
+        address indexed sender,
+        uint256 amount0In,
+        uint256 amount1In,
+        uint256 amount0Out,
+        uint256 amount1Out,
+        address indexed to
+    );
+    event Sync(uint112 reserve0, uint112 reserve1);
+
+    function MINIMUM_LIQUIDITY() external pure returns (uint256);
+
+    function factory() external view returns (address);
+
+    function token0() external view returns (address);
+
+    function token1() external view returns (address);
+
+    function getReserves()
+        external
+        view
+        returns (uint112 reserve0, uint112 reserve1, uint32 blockTimestampLast);
+
+    function price0CumulativeLast() external view returns (uint256);
+
+    function price1CumulativeLast() external view returns (uint256);
+
+    function kLast() external view returns (uint256);
+
+    function burn(
+        address to
+    ) external returns (uint256 amount0, uint256 amount1);
+
+    function swap(
+        uint256 amount0Out,
+        uint256 amount1Out,
+        address to,
+        bytes calldata data
+    ) external;
+
+    function skim(address to) external;
+
+    function sync() external;
+
+    function initialize(address, address) external;
+}
+
+// File contracts/Lottery.sol
+
+// SPDX-License-Identifier: MIT
 pragma solidity 0.8.20;
 
 /**
@@ -640,19 +760,12 @@ pragma solidity 0.8.20;
  * @notice  This contract is a lottery contract that will be used to distribute BLZ tokens to users
  *          The lottery will be a 5/63 lottery, where users will buy tickets with 5 numbers each spanning 8 bits in length
  *          The lottery will be run on a weekly basis, with the lottery ending on a specific time and date
- * @dev ////IMPORTANT DEPENDENCIES:
+ * @dev IMPORTANT DEPENDENCIES:
  *      - Chainlink VRF ConsumerBase -> Request randomness for winner number
  *      - Chainlink VRF Coordinator (Interface only) -> receive randomness from this one
  *      - Chainlink Keepers Implementation -> Once winner is received, check all tickets for matches and return count of matches back to contract to save that particular data
  *      - Chainlink Keeper Implementation 2 -> request randomness for next round
  */
-
-////import "@openzeppelin/contracts/access/Ownable.sol";
-////import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-////import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
-////import "@chainlink/contracts/src/v0.8/AutomationCompatible.sol";
-////import "@chainlink/contracts/src/v0.8/VRFConsumerBaseV2.sol";
-////import "@chainlink/contracts/src/v0.8/interfaces/VRFCoordinatorV2Interface.sol";
 
 //-------------------------------------------------------------------------
 //    INTERFACES
@@ -665,17 +778,22 @@ interface IERC20Burnable is IERC20 {
 //-------------------------------------------------------------------------
 //    ERRORS
 //-------------------------------------------------------------------------
-error BlazeJackpot__RoundInactive(uint256);
-error BlazeJackpot__InsufficientTickets();
-error BlazeJackpot__InvalidMatchers();
-error BlazeJackpot__InvalidMatchRound();
-error BlazeJackpot__InvalidUpkeeper();
-error BlazeJackpot__InvalidRoundEndConditions();
-error BlazeJackpot__InvalidRound();
-error BlazeJackpot__TransferFailed();
-error BlazeJackpot__InvalidClaim();
-error BlazeJackpot__DuplicateTicketIdClaim(uint _round, uint _ticketIndex);
-error BlazeJackpot__InvalidClaimMatch(uint ticketIndex);
+error BlazeLot__RoundInactive(uint256);
+error BlazeLot__InsufficientTickets();
+error BlazeLot__InvalidMatchers();
+error BlazeLot__InvalidMatchRound();
+error BlazeLot__InvalidUpkeeper();
+error BlazeLot__InvalidRoundEndConditions();
+error BlazeLot__InvalidRound();
+error BlazeLot__TransferFailed();
+error BlazeLot__InvalidClaim();
+error BlazeLot__DuplicateTicketIdClaim(uint _round, uint _ticketIndex);
+error BlazeLot__InvalidClaimMatch(uint ticketIndex);
+error BlazeLot__InvalidDistribution(uint totalDistribution);
+error BlazeLot__InvalidToken();
+error BlazeLot__InvalidETHAmount();
+error BlazeLot__InvalidCurrencyClaim();
+error BlazeLot__InvalidTokenPair();
 
 contract BlazeJackpot is
     Ownable,
@@ -687,11 +805,12 @@ contract BlazeJackpot is
     //    TYPE DECLARATIONS
     //-------------------------------------------------------------------------
     struct RoundInfo {
+        uint256[5] distribution; // This is the total pot distributed to each item - NOT the percentages
         uint256 pot;
         uint256 ticketsBought;
         uint256 price;
         uint256 endRound; // Timestamp OR block number when round ends
-        uint randomnessRequestID;
+        uint256 randomnessRequestID;
         bool active;
     }
     struct UserTickets {
@@ -708,6 +827,16 @@ contract BlazeJackpot is
         uint64 winnerNumber; // We'll need to process this so it matches the same format as the tickets
         bool completed;
     }
+    struct AcceptedTokens {
+        uint price;
+        uint match3;
+        uint match4;
+        uint match5;
+        uint dev;
+        uint burn;
+        address v2Pair;
+        bool accepted;
+    }
     //-------------------------------------------------------------------------
     //    State Variables
     //-------------------------------------------------------------------------
@@ -718,6 +847,10 @@ contract BlazeJackpot is
     // mapping(uint => address[]) private roundUsers;
     // mapping(address  => mapping(uint => UserTickets))
     //     private userTickets;
+    // We will accept BLZE, ETH, SHIB, and USDC
+    mapping(address _token => AcceptedTokens _acceptedTokens)
+        public acceptedTokens;
+
     mapping(address _upkeep => bool _enabled) public upkeeper;
     mapping(uint _randomnessRequestID => Matches _winnerMatches) public matches;
     mapping(uint _roundId => RoundInfo) public roundInfo;
@@ -725,17 +858,24 @@ contract BlazeJackpot is
     mapping(address _user => mapping(uint _round => UserTickets _all))
         private userTickets;
 
-    uint[7] public distributionPercentages;
+    address private constant WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
+    address public constant SHIB = 0x95aD61b0a150d79219dCF64E1E6Cc01f0B64C4cE;
+    IUniswapV2Pair private mainPair =
+        IUniswapV2Pair(0x6BfCDA57Eff355A1BfFb76c584Fea20188B12166);
+    address private immutable OTCWallet;
+
+    uint[5] public distributionPercentages; // This percentage allocates to the different distribution amounts per ROUND
     // [match1, match2, match3, match4, match5, burn, team]
     // 25% Match 5
     // 25% Match 4
     // 25% Match 3
-    // 0% Match 2
-    // 0% Match 1
+    // 0% Match 2 (ommited)
+    // 0% Match 1 (ommited)
     // 20% Burns
     // 5%  Team
     address public constant DEAD_WALLET =
         0x000000000000000000000000000000000000dEaD;
+    address public burnWallet;
     //-------------------------------------------------------------------------
     //    VRF Config Variables
     //-------------------------------------------------------------------------
@@ -754,7 +894,6 @@ contract BlazeJackpot is
     uint64 public constant BIT_8_MASK = 0x00000000000000FF;
     uint64 public constant BIT_6_MASK = 0x000000000000003F;
     uint8 public constant BIT_1_MASK = 0x01;
-    bool public roundIsActive;
 
     //-------------------------------------------------------------------------
     //    Events
@@ -768,12 +907,30 @@ contract BlazeJackpot is
     event UpkeeperSet(address indexed upkeeper, bool isUpkeeper);
     event RewardClaimed(address indexed _user, uint rewardAmount);
     event RoundDurationSet(uint _oldDuration, uint _newDuration);
+    event TransferFailed(address _to, uint _amount);
+    event AltDistributionChanged(
+        address _token,
+        uint m3,
+        uint m4,
+        uint m5,
+        uint dev,
+        uint burn
+    );
+    event AltAcceptanceChanged(address indexed _token, bool status);
+    event EditAltPrice(address _token, uint _newPrice);
 
     //-------------------------------------------------------------------------
     //    Modifiers
     //-------------------------------------------------------------------------
     modifier onlyUpkeeper() {
-        if (!upkeeper[msg.sender]) revert BlazeJackpot__InvalidUpkeeper();
+        if (!upkeeper[msg.sender]) revert BlazeLot__InvalidUpkeeper();
+        _;
+    }
+
+    modifier activeRound() {
+        RoundInfo storage playingRound = roundInfo[currentRound];
+        if (!playingRound.active || block.timestamp > playingRound.endRound)
+            revert BlazeLot__RoundInactive(currentRound);
         _;
     }
 
@@ -785,8 +942,11 @@ contract BlazeJackpot is
         address _vrfCoordinator,
         bytes32 _keyHash,
         uint64 _subscriptionId,
-        address _team
+        address _team,
+        address _burnWallet,
+        address _otcWallet
     ) VRFConsumerBaseV2(_vrfCoordinator) {
+        burnWallet = _burnWallet;
         // _tokenAccepted is BLZ token
         currency = IERC20Burnable(_tokenAccepted);
 
@@ -795,13 +955,102 @@ contract BlazeJackpot is
         keyHash = _keyHash;
         subscriptionId = _subscriptionId;
 
-        distributionPercentages = [0, 0, 25, 25, 25, 20, 5];
+        distributionPercentages = [25, 25, 25, 20, 5];
         teamWallet = _team;
+        acceptedTokens[SHIB] = AcceptedTokens({
+            price: 245_000 ether,
+            match3: 25,
+            match4: 25,
+            match5: 25,
+            dev: 5,
+            burn: 20,
+            v2Pair: 0x811beEd0119b4AfCE20D2583EB608C6F7AF1954f,
+            accepted: true
+        });
+        acceptedTokens[address(0)] = AcceptedTokens({
+            price: 0.0013 ether,
+            match3: 25,
+            match4: 25,
+            match5: 25,
+            dev: 5,
+            burn: 20,
+            v2Pair: address(0),
+            accepted: true
+        });
+        OTCWallet = _otcWallet;
     }
 
     //-------------------------------------------------------------------------
     //    EXTERNAL Functions
     //-------------------------------------------------------------------------
+    /**
+     * @notice Buy tickets with ALT tokens or ETH
+     * @param tickets Array of tickets to buy. The tickets need to have 5 numbers each spanning 8 bits in length
+     * @param token Address of the token to use to buy tickets
+     * @dev BLZE buys not accepted here
+     */
+    function buyTicketsWithAltTokens(
+        uint64[] calldata tickets,
+        address token
+    ) external payable nonReentrant activeRound {
+        AcceptedTokens storage altToken = acceptedTokens[token];
+        // Make sure token is approved token
+        if (!altToken.accepted) revert BlazeLot__InvalidToken();
+        uint price = altToken.price * tickets.length;
+        uint toBurn = (price * altToken.burn) / PERCENTAGE_BASE;
+        uint devAmount = (price * altToken.dev) / PERCENTAGE_BASE;
+        uint toPot = price - toBurn - devAmount;
+        // if token = address(0) then we're using ETH
+        if (token == address(0)) {
+            if (msg.value < price) revert BlazeLot__InvalidETHAmount();
+            // Send ETH to burn wallet
+            (bool succ, ) = payable(burnWallet).call{value: toBurn}("");
+            if (!succ) emit TransferFailed(burnWallet, toBurn);
+            (succ, ) = payable(teamWallet).call{value: devAmount}("");
+            if (!succ) emit TransferFailed(teamWallet, devAmount);
+            (uint reserve0, uint reserve1, ) = mainPair.getReserves();
+            uint toBuy = (toPot * reserve0) / reserve1;
+            // Buy BLZE from OTC wallet
+            currency.transferFrom(OTCWallet, address(this), toBuy);
+            (succ, ) = payable(OTCWallet).call{value: toPot}("");
+            if (!succ) emit TransferFailed(OTCWallet, toPot);
+            uint[] memory dist = new uint[](5);
+            dist[0] = altToken.match3;
+            dist[1] = altToken.match4;
+            dist[2] = altToken.match5;
+            dist[3] = 0;
+            dist[4] = 0;
+            _addToPot(toBuy, currentRound, dist);
+        } else {
+            // Send token to burn wallet
+            IERC20(token).transferFrom(msg.sender, burnWallet, toBurn);
+            IERC20(token).transferFrom(msg.sender, teamWallet, devAmount);
+            IERC20(token).transferFrom(msg.sender, OTCWallet, toPot);
+            // Buy BLZE from OTC wallet
+            // get token to ETH price using v2Pair
+            (uint reserve0, uint reserve1, ) = IUniswapV2Pair(altToken.v2Pair)
+                .getReserves();
+            address token0 = IUniswapV2Pair(altToken.v2Pair).token0();
+            uint toBuy = 0;
+            if (token0 == WETH) toBuy = (reserve0 * toPot) / reserve1;
+            else toBuy = (reserve1 * toPot) / reserve0;
+
+            (reserve0, reserve1, ) = mainPair.getReserves();
+
+            toBuy = (toBuy * reserve0) / reserve1;
+
+            currency.transferFrom(OTCWallet, address(this), toBuy);
+            uint[] memory dist = new uint[](5);
+            dist[0] = altToken.match3;
+            dist[1] = altToken.match4;
+            dist[2] = altToken.match5;
+            dist[3] = 0;
+            dist[4] = 0;
+            _addToPot(toBuy, currentRound, dist);
+        }
+        // Buy Tickets
+        _buyTickets(tickets, 0, msg.sender);
+    }
 
     /**
      *
@@ -815,30 +1064,13 @@ contract BlazeJackpot is
      *      Although we will not check for this, the numbers will be be checked using bit shifting with a mask so any larger numbers will be ignored
      * @dev gas cost is reduced ludicrously, however we will be relying heavily on chainlink keepers to check for winners and get the match amount data
      */
-    function buyTickets(uint64[] calldata tickets) external nonReentrant {
+    function buyTickets(
+        uint64[] calldata tickets
+    ) external nonReentrant activeRound {
         RoundInfo storage playingRound = roundInfo[currentRound];
-        if (!playingRound.active || block.timestamp > playingRound.endRound)
-            revert BlazeJackpot__RoundInactive(currentRound);
-        // Check ticket array
-        uint256 ticketAmount = tickets.length;
-        if (ticketAmount == 0) {
-            revert BlazeJackpot__InsufficientTickets();
-        }
-        // Get payment from ticket price
-        uint256 price = playingRound.price * ticketAmount;
-        if (price > 0) addToPot(price, currentRound);
-
-        playingRound.ticketsBought += ticketAmount;
-        // Save Ticket to current Round
-        UserTickets storage user = userTickets[msg.sender][currentRound];
-        // Add user to the list of users to check for winners
-        if (user.tickets.length == 0) roundUsers[currentRound].push(msg.sender);
-
-        for (uint i = 0; i < ticketAmount; i++) {
-            user.tickets.push(tickets[i]);
-            user.claimed.push(false);
-        }
-        emit BoughtTickets(msg.sender, currentRound, ticketAmount);
+        uint potAmount = playingRound.price * tickets.length;
+        currency.transferFrom(msg.sender, address(this), potAmount);
+        _buyTickets(tickets, potAmount, msg.sender);
     }
 
     /**
@@ -875,7 +1107,7 @@ contract BlazeJackpot is
             _rounds.length == 0 ||
             _ticketIndexes.length != _matches.length ||
             _ticketIndexes.length == 0
-        ) revert BlazeJackpot__InvalidClaim();
+        ) revert BlazeLot__InvalidClaim();
         uint ticketOffset;
         uint rewards;
         for (uint i = 0; i < _rounds.length; i++) {
@@ -899,10 +1131,52 @@ contract BlazeJackpot is
      * @param _roundId ID of the upcoming round to edit
      * @dev If this is not called, on round end, the price will be the same as the previous round
      */
-    function setPrice(uint256 _newPrice, uint256 _roundId) external onlyOwner {
+    function setCurrencyPrice(
+        uint256 _newPrice,
+        uint256 _roundId
+    ) external onlyOwner {
         require(_roundId > currentRound, "Invalid ID");
         roundInfo[_roundId].price = _newPrice;
         emit EditRoundPrice(_roundId, _newPrice);
+    }
+
+    function setAltPrice(uint _newPrice, address _token) external onlyOwner {
+        AcceptedTokens storage altToken = acceptedTokens[_token];
+        altToken.price = _newPrice;
+        emit EditAltPrice(_token, _newPrice);
+    }
+
+    function setAltDistribution(
+        uint m3,
+        uint m4,
+        uint m5,
+        uint dev,
+        uint burn,
+        address _token,
+        address tokenV2Pair
+    ) external onlyOwner {
+        AcceptedTokens storage altToken = acceptedTokens[_token];
+        uint totalDistribution = m3 + m4 + m5 + dev + burn;
+        if (totalDistribution != PERCENTAGE_BASE)
+            revert BlazeLot__InvalidDistribution(totalDistribution);
+        address token0 = IUniswapV2Pair(tokenV2Pair).token0();
+        address token1 = IUniswapV2Pair(tokenV2Pair).token1();
+        if (
+            (token0 != _token && token1 != _token) ||
+            (token0 != WETH && token1 != WETH)
+        ) revert BlazeLot__InvalidTokenPair();
+        altToken.v2Pair = tokenV2Pair;
+        altToken.match3 = m3;
+        altToken.match4 = m4;
+        altToken.match5 = m5;
+        altToken.dev = dev;
+        altToken.burn = burn;
+        emit AltDistributionChanged(_token, m3, m4, m5, dev, burn);
+    }
+
+    function acceptAlt(address _token, bool status) external onlyOwner {
+        acceptedTokens[_token].accepted = status;
+        emit AltAcceptanceChanged(_token, status);
     }
 
     /**
@@ -943,7 +1217,7 @@ contract BlazeJackpot is
      */
     function performUpkeep(bytes calldata performData) external onlyUpkeeper {
         //Only upkeepers can do this
-        if (!upkeeper[msg.sender]) revert BlazeJackpot__InvalidUpkeeper();
+        if (!upkeeper[msg.sender]) revert BlazeLot__InvalidUpkeeper();
 
         (bool isRandomRequest, uint256[] memory matchers) = abi.decode(
             performData,
@@ -954,12 +1228,12 @@ contract BlazeJackpot is
             endRound();
         } else {
             if (matchers.length != 5 || playingRound.active)
-                revert BlazeJackpot__InvalidMatchers();
+                revert BlazeLot__InvalidMatchers();
             Matches storage currentMatches = matches[
                 playingRound.randomnessRequestID
             ];
             if (currentMatches.winnerNumber == 0 || currentMatches.completed)
-                revert BlazeJackpot__InvalidMatchRound();
+                revert BlazeLot__InvalidMatchRound();
             currentMatches.match1 = matchers[0];
             currentMatches.match2 = matchers[1];
             currentMatches.match3 = matchers[2];
@@ -976,21 +1250,32 @@ contract BlazeJackpot is
         roundDuration = _newDuration;
     }
 
+    function claimNonPrizeTokens(address _token) external onlyOwner {
+        if (_token == address(currency))
+            revert BlazeLot__InvalidCurrencyClaim();
+        if (_token == address(0)) {
+            (bool succ, ) = payable(owner()).call{value: address(this).balance}(
+                ""
+            );
+            if (!succ) emit TransferFailed(owner(), address(this).balance);
+        } else {
+            IERC20 token = IERC20(_token);
+            token.transfer(owner(), token.balanceOf(address(this)));
+        }
+    }
+
+    function addToPot(
+        uint amount,
+        uint round,
+        uint[] memory customDistribution
+    ) external {
+        currency.transferFrom(msg.sender, address(this), amount);
+        _addToPot(amount, round, customDistribution);
+    }
+
     //-------------------------------------------------------------------------
     //    PUBLIC FUNCTIONS
     //-------------------------------------------------------------------------
-    /**
-     * @notice Add Blaze to the POT of the selected round
-     * @param amount Amount of Blaze to add to the pot
-     * @param round Round to add the Blaze to
-     */
-    function addToPot(uint amount, uint round) public {
-        if (round < currentRound || round == 0)
-            revert BlazeJackpot__InvalidRound();
-        currency.transferFrom(msg.sender, address(this), amount);
-        roundInfo[round].pot += amount;
-        emit AddToPot(msg.sender, amount, round);
-    }
 
     /**
      * @notice End the current round
@@ -1021,12 +1306,56 @@ contract BlazeJackpot is
                 playingRound.randomnessRequestID = requestId;
                 matches[requestId].roundId = currentRound;
             }
-        } else revert BlazeJackpot__InvalidRoundEndConditions();
+        } else revert BlazeLot__InvalidRoundEndConditions();
     }
 
     //-------------------------------------------------------------------------
     //    INTERNAL FUNCTIONS
     //-------------------------------------------------------------------------
+    /**
+     * @notice Add Blaze to the POT of the selected round
+     * @param amount Amount of Blaze to add to the pot
+     * @param round Round to add the Blaze to
+     * @param customDistribution Distribution of the funds into the pot
+        // 25% Match 3   0
+        // 25% Match 4   1
+        // 25% Match 5   2
+        // 20% Burns     3
+        // 5%  Team      4
+     */
+    function _addToPot(
+        uint amount,
+        uint round,
+        uint[] memory customDistribution
+    ) internal {
+        if (round < currentRound || round == 0) revert BlazeLot__InvalidRound();
+        uint distributionLength = customDistribution.length;
+        uint totalPercentage = PERCENTAGE_BASE;
+        if (distributionLength == 0 || distributionLength != 5) {
+            customDistribution = new uint[](5);
+            customDistribution[0] = distributionPercentages[0];
+            customDistribution[1] = distributionPercentages[1];
+            customDistribution[2] = distributionPercentages[2];
+            customDistribution[3] = distributionPercentages[3];
+            customDistribution[4] = distributionPercentages[4];
+        } else {
+            for (uint i = 0; i < 5; i++) {
+                totalPercentage += customDistribution[i];
+            }
+            totalPercentage -= PERCENTAGE_BASE;
+        }
+        RoundInfo storage playingRound = roundInfo[round];
+        for (uint i = 0; i < 5; i++) {
+            playingRound.distribution[i] +=
+                (customDistribution[i] * amount) /
+                totalPercentage;
+        }
+
+        playingRound.pot += amount;
+
+        emit AddToPot(msg.sender, amount, round);
+    }
+
     function fulfillRandomWords(
         uint requestId,
         uint256[] memory randomWords
@@ -1034,8 +1363,22 @@ contract BlazeJackpot is
         uint64 winnerNumber = uint64(randomWords[0]);
         uint64 addedMask = 0;
         for (uint8 i = 0; i < 5; i++) {
+            uint64 currentNumber = (winnerNumber >> (8 * i)) & BIT_6_MASK;
+            if (i == 0) {
+                addedMask += currentNumber;
+                continue;
+            }
+            for (uint8 j = 1; j < i + 1; j++) {
+                if (
+                    currentNumber == ((addedMask >> (8 * (j - 1))) & BIT_6_MASK)
+                ) {
+                    currentNumber++;
+                    j = 0;
+                    continue;
+                }
+            }
             // pass a 6 bit mask to get the last 6 bits of each number
-            addedMask += winnerNumber & (BIT_6_MASK << (8 * i));
+            addedMask += (currentNumber & BIT_6_MASK) << (8 * i);
         }
         if (addedMask == 0) addedMask = uint64(1);
         matches[requestId].winnerNumber = addedMask;
@@ -1046,16 +1389,16 @@ contract BlazeJackpot is
         uint[] memory _userTicketIndexes,
         uint8[] memory _matches
     ) internal returns (uint) {
-        if (_round >= currentRound) revert BlazeJackpot__InvalidRound();
+        if (_round >= currentRound) revert BlazeLot__InvalidRound();
         if (
             _userTicketIndexes.length != _matches.length ||
             _userTicketIndexes.length == 0
-        ) revert BlazeJackpot__InvalidClaim();
+        ) revert BlazeLot__InvalidClaim();
         RoundInfo storage round = roundInfo[_round];
 
         UserTickets storage user = userTickets[msg.sender][_round];
         if (user.tickets.length < _userTicketIndexes.length)
-            revert BlazeJackpot__InvalidClaim();
+            revert BlazeLot__InvalidClaim();
 
         Matches storage roundMatches = matches[round.randomnessRequestID];
         uint toReward;
@@ -1064,14 +1407,11 @@ contract BlazeJackpot is
         for (uint i = 0; i < _userTicketIndexes.length; i++) {
             uint ticketIndex = _userTicketIndexes[i];
             // index is checked and if out of bounds, will revert
-            if (_matches[i] == 0 || _matches[i] > 5)
-                revert BlazeJackpot__InvalidClaimMatch(i);
+            if (_matches[i] < 3 || _matches[i] > 5)
+                revert BlazeLot__InvalidClaimMatch(i);
 
             if (user.claimed[ticketIndex])
-                revert BlazeJackpot__DuplicateTicketIdClaim(
-                    _round,
-                    ticketIndex
-                );
+                revert BlazeLot__DuplicateTicketIdClaim(_round, ticketIndex);
 
             uint64 ticket = user.tickets[ticketIndex];
 
@@ -1083,11 +1423,11 @@ contract BlazeJackpot is
 
                 user.claimed[ticketIndex] = true;
 
-                uint256 matchReward = (round.pot *
-                    distributionPercentages[_matches[i] - 1]);
-                toReward += matchReward / (totalMatches * PERCENTAGE_BASE);
+                uint256 matchReward = round.distribution[_matches[i] - 3] /
+                    totalMatches;
+                toReward += matchReward;
             } else {
-                revert BlazeJackpot__InvalidClaimMatch(i);
+                revert BlazeLot__InvalidClaimMatch(i);
             }
         }
         return toReward;
@@ -1096,33 +1436,69 @@ contract BlazeJackpot is
     //-------------------------------------------------------------------------
     //    PRIVATE FUNCTIONS
     //-------------------------------------------------------------------------
+
+    function _buyTickets(
+        uint64[] calldata tickets,
+        uint256 potAmount,
+        address _user
+    ) private {
+        RoundInfo storage playingRound = roundInfo[currentRound];
+        if (!playingRound.active || block.timestamp > playingRound.endRound)
+            revert BlazeLot__RoundInactive(currentRound);
+        // Check ticket array
+        uint256 ticketAmount = tickets.length;
+        if (ticketAmount == 0) {
+            revert BlazeLot__InsufficientTickets();
+        }
+
+        uint[] memory dist = new uint[](1);
+        if (potAmount > 0) _addToPot(potAmount, currentRound, dist);
+
+        playingRound.ticketsBought += ticketAmount;
+        // Save Ticket to current Round
+        UserTickets storage user = userTickets[_user][currentRound];
+        // Add user to the list of users to check for winners
+        if (user.tickets.length == 0) roundUsers[currentRound].push(_user);
+
+        for (uint i = 0; i < ticketAmount; i++) {
+            user.tickets.push(tickets[i]);
+            user.claimed.push(false);
+        }
+        emit BoughtTickets(_user, currentRound, ticketAmount);
+    }
+
     function rolloverAmount(uint round, Matches storage matchInfo) private {
         RoundInfo storage playingRound = roundInfo[round];
         RoundInfo storage nextRound = roundInfo[round + 1];
 
-        uint currentPot = playingRound.pot;
         uint nextPot = 0;
         if (playingRound.pot == 0) return;
         // Check amount of winners of each match type and their distribution percentages
-        if (matchInfo.match1 == 0 && distributionPercentages[0] > 0)
-            nextPot += (currentPot * distributionPercentages[0]) / 100;
-        if (matchInfo.match2 == 0 && distributionPercentages[1] > 0)
-            nextPot += (currentPot * distributionPercentages[1]) / 100;
-        if (matchInfo.match3 == 0 && distributionPercentages[2] > 0)
-            nextPot += (currentPot * distributionPercentages[2]) / 100;
-        if (matchInfo.match4 == 0 && distributionPercentages[3] > 0)
-            nextPot += (currentPot * distributionPercentages[3]) / 100;
-        if (matchInfo.match5 == 0 && distributionPercentages[4] > 0)
-            nextPot += (currentPot * distributionPercentages[4]) / 100;
-        // BURN the Currency Amount
-        uint burnAmount = (distributionPercentages[5] * currentPot) / 100;
-        // Send the appropriate percent to the team wallet
-        uint teamPot = (distributionPercentages[6] * currentPot) / 100;
-        try currency.burn(burnAmount) {} catch {
-            currency.transfer(DEAD_WALLET, burnAmount);
+        // if (matchInfo.match1 == 0 && playingRound.distribution[0] > 0)
+        //     nextPot += (currentPot * playingRound.distribution[0]) / 100;
+        // if (matchInfo.match2 == 0 && playingRound.distribution[1] > 0)
+        //     nextPot += (currentPot * playingRound.distribution[1]) / 100;
+        if (matchInfo.match3 == 0) {
+            nextPot += playingRound.distribution[0];
+            nextRound.distribution[0] = playingRound.distribution[0];
         }
-        bool succ = currency.transfer(teamWallet, teamPot);
-        if (!succ) revert BlazeJackpot__TransferFailed();
+        if (matchInfo.match4 == 0) {
+            nextPot += playingRound.distribution[1];
+            nextRound.distribution[1] = playingRound.distribution[1];
+        }
+        if (matchInfo.match5 == 0) {
+            nextPot += playingRound.distribution[2];
+            nextRound.distribution[2] = playingRound.distribution[2];
+        }
+        // BURN the Currency Amount
+        uint burnAmount = playingRound.distribution[3];
+        // Send the appropriate percent to the team wallet
+        uint teamPot = playingRound.distribution[4];
+        if (burnAmount > 0) currency.transfer(burnWallet, burnAmount);
+        if (teamPot > 0) {
+            bool succ = currency.transfer(teamWallet, teamPot);
+            if (!succ) revert BlazeLot__TransferFailed();
+        }
         nextRound.pot += nextPot;
         emit RolloverPot(round, nextPot);
     }
@@ -1133,6 +1509,7 @@ contract BlazeJackpot is
         roundInfo[currentRound].endRound =
             playingRound.endRound +
             roundDuration;
+        roundInfo[currentRound].distribution = distributionPercentages;
         if (roundInfo[currentRound].price == 0)
             roundInfo[currentRound].price = playingRound.price;
     }
@@ -1264,15 +1641,13 @@ contract BlazeJackpot is
             matches[roundInfo[round].randomnessRequestID].winnerNumber,
             userTickets[_user][round].tickets[_userTicketIndex]
         );
-        if (_matched_ == 0) return 0;
+        if (_matched_ < 3) return 0;
         uint totalMatches = getTotalMatches(
             matches[roundInfo[round].randomnessRequestID],
             _matched_
         );
         if (totalMatches == 0) return 0;
-        return
-            (pot * distributionPercentages[_matched_ - 1]) /
-            (PERCENTAGE_BASE * totalMatches);
+        return roundInfo[round].distribution[_matched_ - 3] / totalMatches;
     }
 
     function checkTickets(
@@ -1297,12 +1672,12 @@ contract BlazeJackpot is
                 matches[rndId].winnerNumber,
                 userTickets[_user][round].tickets[ticketIndex]
             );
-            if (_matched_ == 0) continue;
+            if (_matched_ < 3) continue;
             uint totalMatches = getTotalMatches(matches[rndId], _matched_);
             if (totalMatches == 0) continue;
             totalReward +=
-                (pot * distributionPercentages[_matched_ - 1]) /
-                (PERCENTAGE_BASE * totalMatches);
+                roundInfo[round].distribution[_matched_ - 3] /
+                totalMatches;
         }
         return totalReward;
     }
@@ -1334,5 +1709,15 @@ contract BlazeJackpot is
         uint64 ticket2
     ) external pure returns (uint8) {
         return _compareTickets(ticket1, ticket2);
+    }
+
+    function roundDistribution(
+        uint round
+    ) external view returns (uint[] memory) {
+        uint[] memory distribution = new uint[](5);
+        for (uint i = 0; i < 5; i++) {
+            distribution[i] = roundInfo[round].distribution[i];
+        }
+        return distribution;
     }
 }
