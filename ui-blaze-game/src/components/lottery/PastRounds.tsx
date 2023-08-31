@@ -49,44 +49,8 @@ const PastRounds = () => {
       {
         address: lotteryContract,
         abi: lotteryAbi,
-        functionName: "distributionPercentages",
-        args: [0n],
-      },
-      {
-        address: lotteryContract,
-        abi: lotteryAbi,
-        functionName: "distributionPercentages",
-        args: [1n],
-      },
-      {
-        address: lotteryContract,
-        abi: lotteryAbi,
-        functionName: "distributionPercentages",
-        args: [2n],
-      },
-      {
-        address: lotteryContract,
-        abi: lotteryAbi,
-        functionName: "distributionPercentages",
-        args: [3n],
-      },
-      {
-        address: lotteryContract,
-        abi: lotteryAbi,
-        functionName: "distributionPercentages",
-        args: [4n],
-      },
-      {
-        address: lotteryContract,
-        abi: lotteryAbi,
-        functionName: "distributionPercentages",
-        args: [5n],
-      },
-      {
-        address: lotteryContract,
-        abi: lotteryAbi,
-        functionName: "distributionPercentages",
-        args: [6n],
+        functionName: "roundDistribution",
+        args: [BigInt(selectedRound) || 0n],
       },
       {
         address: lotteryContract,
@@ -98,12 +62,12 @@ const PastRounds = () => {
   });
 
   const userTickets = Number(
-    matchesInfo?.[8]?.result?.[2] || 0n
+    matchesInfo?.[2]?.result?.[2] || 0n
   ).toLocaleString();
 
-  const userClaims = matchesInfo?.[8]?.result?.[1].filter((x) => x) || [];
+  const userClaims = matchesInfo?.[2]?.result?.[1].filter((x) => x) || [];
   const userWinners =
-    matchesInfo?.[8]?.result?.[0]
+    matchesInfo?.[2]?.result?.[0]
       ?.map((ticket, index) => {
         const hexTicketNumbers = toEvenHexNoPrefix(ticket).match(/..?/g) || [];
         const winnerTicketNumbers =
@@ -175,7 +139,6 @@ const PastRounds = () => {
         Pending Rounds
       </div>
     );
-
   return (
     <>
       <div className="card bg-secondary-bg rounded-3xl overflow-hidden border-golden-dark border-4 md:max-w-md w-[300px] md:min-w-[450px] font-outfit">
@@ -411,9 +374,7 @@ const PastRounds = () => {
                     </td>
                     <td className="text-gray-500 text-right">
                       {(
-                        Number(
-                          (data?.[0] || 0n) * (matchesInfo?.[3]?.result || 0n)
-                        ) / 100e18
+                        Number(matchesInfo?.[1]?.result?.[0] || 0n) / 1e18
                       ).toLocaleString()}
                     </td>
                   </tr>
@@ -426,9 +387,7 @@ const PastRounds = () => {
                     </td>
                     <td className="text-gray-500 text-right">
                       {(
-                        Number(
-                          (data?.[0] || 0n) * (matchesInfo?.[4]?.result || 0n)
-                        ) / 100e18
+                        Number(matchesInfo?.[1]?.result?.[1] || 0n) / 1e18
                       ).toLocaleString()}
                     </td>
                   </tr>
@@ -441,9 +400,7 @@ const PastRounds = () => {
                     </td>
                     <td className="text-gray-500 text-right">
                       {(
-                        Number(
-                          (data?.[0] || 0n) * (matchesInfo?.[5]?.result || 0n)
-                        ) / 100e18
+                        Number(matchesInfo?.[1]?.result?.[2] || 0n) / 1e18
                       ).toLocaleString()}
                     </td>
                   </tr>
@@ -451,9 +408,7 @@ const PastRounds = () => {
                     <td className="">Burn</td>
                     <td className="text-red-500 text-right" colSpan={2}>
                       {(
-                        Number(
-                          (data?.[0] || 0n) * (matchesInfo?.[6]?.result || 0n)
-                        ) / 100e18
+                        Number(matchesInfo?.[1]?.result?.[3] || 0n) / 1e18
                       ).toLocaleString()}
                       &nbsp;BLZE
                     </td>
@@ -462,9 +417,7 @@ const PastRounds = () => {
                     <td className="">Development</td>
                     <td className="text-golden text-right" colSpan={2}>
                       {(
-                        Number(
-                          (data?.[0] || 0n) * (matchesInfo?.[7]?.result || 0n)
-                        ) / 100e18
+                        Number(matchesInfo?.[1]?.result?.[4] || 0n) / 1e18
                       ).toLocaleString()}
                       &nbsp;BLZE
                     </td>
@@ -497,7 +450,7 @@ const PastRounds = () => {
             </div>
           </div>
           <div className="flex flex-col items-center justify-center">
-            {matchesInfo?.[8]?.result?.[0]?.map((ticket, index) => {
+            {matchesInfo?.[2]?.result?.[0]?.map((ticket, index) => {
               const hexNum = toEvenHexNoPrefix(ticket);
               const winnerInfo = userWinners.filter((x) => x.index === index);
               const isWinner = winnerInfo.length > 0;

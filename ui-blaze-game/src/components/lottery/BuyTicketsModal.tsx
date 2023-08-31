@@ -268,8 +268,6 @@ const BuyTicketsModal = () => {
     hash: altData?.hash,
   });
 
-  console.log({ balances });
-
   const tokenInfo = {
     blaze: {
       wallet: (balances?.[0]?.result as bigint) || 0n,

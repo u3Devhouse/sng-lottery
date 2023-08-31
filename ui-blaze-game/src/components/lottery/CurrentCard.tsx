@@ -62,44 +62,8 @@ const Card = () => {
       {
         address: lotteryContract,
         abi: lotteryAbi,
-        functionName: "distributionPercentages",
-        args: [0n],
-      },
-      {
-        address: lotteryContract,
-        abi: lotteryAbi,
-        functionName: "distributionPercentages",
-        args: [1n],
-      },
-      {
-        address: lotteryContract,
-        abi: lotteryAbi,
-        functionName: "distributionPercentages",
-        args: [2n],
-      },
-      {
-        address: lotteryContract,
-        abi: lotteryAbi,
-        functionName: "distributionPercentages",
-        args: [3n],
-      },
-      {
-        address: lotteryContract,
-        abi: lotteryAbi,
-        functionName: "distributionPercentages",
-        args: [4n],
-      },
-      {
-        address: lotteryContract,
-        abi: lotteryAbi,
-        functionName: "distributionPercentages",
-        args: [5n],
-      },
-      {
-        address: lotteryContract,
-        abi: lotteryAbi,
-        functionName: "distributionPercentages",
-        args: [6n],
+        functionName: "roundDistribution",
+        args: [currentRound || 0n],
       },
     ],
   });
@@ -301,67 +265,19 @@ const Card = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {/* <tr>
-                  <td className="">Match 1</td>
-                  <td className="text-right text-golden font-bold">
-                    {(
-                      Number(
-                        (roundInfo?.[0].result?.[0] || 0n) *
-                          (roundInfo?.[4]?.result || 0n)
-                      ) / 100e18
-                    ).toLocaleString()}
-                  </td>
-                  <td className="text-gray-500 text-right">
-                    {(
-                      (Number(
-                        (roundInfo?.[0].result?.[0] || 0n) *
-                          (roundInfo?.[4]?.result || 0n)
-                      ) *
-                        blazeData.price) /
-                      100e18
-                    ).toFixed(2)}
-                  </td>
-                </tr>
-                <tr>
-                  <td className="">Match 2</td>
-                  <td className="text-right text-golden font-bold">
-                    {(
-                      Number(
-                        (roundInfo?.[0].result?.[0] || 0n) *
-                          (roundInfo?.[5]?.result || 0n)
-                      ) / 100e18
-                    ).toLocaleString()}
-                  </td>
-                  <td className="text-gray-500 text-right">
-                    {(
-                      (Number(
-                        (roundInfo?.[0].result?.[0] || 0n) *
-                          (roundInfo?.[5]?.result || 0n)
-                      ) *
-                        blazeData.price) /
-                      100e18
-                    ).toFixed(2)}
-                  </td>
-                </tr> */}
                   <tr>
                     <td className="">Match 3</td>
                     <td className="text-right text-golden font-bold">
                       {(
-                        Number(
-                          (roundInfo?.[0].result?.[0] || 0n) *
-                            (roundInfo?.[6]?.result || 0n)
-                        ) / 100e18
+                        Number(roundInfo?.[4].result?.[0] || 0n) / 1e18
                       ).toLocaleString()}
                     </td>
                     <td className="text-gray-500 text-right">
                       {parseFloat(
                         (
-                          (Number(
-                            (roundInfo?.[0].result?.[0] || 0n) *
-                              (roundInfo?.[6]?.result || 0n)
-                          ) *
+                          (Number(roundInfo?.[4].result?.[0] || 0n) *
                             blazeData.price) /
-                          100e18
+                          1e18
                         ).toFixed(2)
                       ).toLocaleString()}
                     </td>
@@ -370,21 +286,15 @@ const Card = () => {
                     <td className="">Match 4</td>
                     <td className="text-right text-golden font-bold">
                       {(
-                        Number(
-                          (roundInfo?.[0].result?.[0] || 0n) *
-                            (roundInfo?.[7]?.result || 0n)
-                        ) / 100e18
+                        Number(roundInfo?.[4].result?.[1] || 0n) / 1e18
                       ).toLocaleString()}
                     </td>
                     <td className="text-gray-500 text-right">
                       {parseFloat(
                         (
-                          (Number(
-                            (roundInfo?.[0].result?.[0] || 0n) *
-                              (roundInfo?.[7]?.result || 0n)
-                          ) *
+                          (Number(roundInfo?.[4].result?.[1] || 0n) *
                             blazeData.price) /
-                          100e18
+                          1e18
                         ).toFixed(2)
                       ).toLocaleString()}
                     </td>
@@ -393,21 +303,15 @@ const Card = () => {
                     <td className="">Match 5</td>
                     <td className="text-right text-golden font-bold">
                       {(
-                        Number(
-                          (roundInfo?.[0].result?.[0] || 0n) *
-                            (roundInfo?.[8]?.result || 0n)
-                        ) / 100e18
+                        Number(roundInfo?.[4].result?.[2] || 0n) / 1e18
                       ).toLocaleString()}
                     </td>
                     <td className="text-gray-500 text-right">
                       {parseFloat(
                         (
-                          (Number(
-                            (roundInfo?.[0].result?.[0] || 0n) *
-                              (roundInfo?.[8]?.result || 0n)
-                          ) *
+                          (Number(roundInfo?.[4].result?.[2] || 0n) *
                             blazeData.price) /
-                          100e18
+                          1e18
                         ).toFixed(2)
                       ).toLocaleString()}
                     </td>
@@ -416,21 +320,15 @@ const Card = () => {
                     <td className="">BLZE Burn</td>
                     <td className="text-right text-red-500 font-bold">
                       {(
-                        Number(
-                          (roundInfo?.[0].result?.[0] || 0n) *
-                            (roundInfo?.[9]?.result || 0n)
-                        ) / 100e18
+                        Number(roundInfo?.[4].result?.[3] || 0n) / 1e18
                       ).toLocaleString()}
                     </td>
                     <td className="text-gray-500 text-right">
                       {parseFloat(
                         (
-                          (Number(
-                            (roundInfo?.[0].result?.[0] || 0n) *
-                              (roundInfo?.[9]?.result || 0n)
-                          ) *
+                          (Number(roundInfo?.[4].result?.[3] || 0n) *
                             blazeData.price) /
-                          100e18
+                          1e18
                         ).toFixed(2)
                       ).toLocaleString()}
                     </td>
@@ -439,21 +337,15 @@ const Card = () => {
                     <td className="">Development</td>
                     <td className="text-right text-golden font-bold">
                       {(
-                        Number(
-                          (roundInfo?.[0].result?.[0] || 0n) *
-                            (roundInfo?.[10]?.result || 0n)
-                        ) / 100e18
+                        Number(roundInfo?.[4].result?.[4] || 0n) / 1e18
                       ).toLocaleString()}
                     </td>
                     <td className="text-gray-500 text-right">
                       {parseFloat(
                         (
-                          (Number(
-                            (roundInfo?.[0].result?.[0] || 0n) *
-                              (roundInfo?.[10]?.result || 0n)
-                          ) *
+                          (Number(roundInfo?.[4].result?.[4] || 0n) *
                             blazeData.price) /
-                          100e18
+                          1e18
                         ).toFixed(2)
                       ).toLocaleString()}
                     </td>

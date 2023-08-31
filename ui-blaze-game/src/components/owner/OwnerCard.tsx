@@ -158,11 +158,6 @@ const OwnerCard = () => {
               <input
                 type="datetime-local"
                 onChange={(e) => {
-                  console.log({
-                    num: e.target.valueAsNumber,
-                    date: e.target.valueAsDate,
-                    val: e.target.value,
-                  });
                   setInitEnd(e.target.valueAsNumber);
                 }}
                 className="input input-primary bg-secondary-bg border-2"
