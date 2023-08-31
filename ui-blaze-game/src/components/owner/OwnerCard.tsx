@@ -51,6 +51,7 @@ const OwnerCard = () => {
     args: [
       BigInt(potAdd || 0) * BigInt(10 ** 18),
       BigInt(mainInfo.currentRound > 0 ? mainInfo.currentRound : 1),
+      [25n, 25n, 25n, 20n, 5n],
     ],
   });
   const { config: upkeeperConfig } = usePrepareContractWrite({
@@ -62,7 +63,7 @@ const OwnerCard = () => {
   const { config: setPriceConfig } = usePrepareContractWrite({
     address: lotteryContract,
     abi: lotteryAbi,
-    functionName: "setPrice",
+    functionName: "setCurrencyPrice",
     args: [
       BigInt(initPrice || 0) * BigInt(10 ** 18),
       BigInt(mainInfo.currentRound + 1),

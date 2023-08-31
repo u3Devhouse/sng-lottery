@@ -215,7 +215,7 @@ const BuyTicketsModal = () => {
       const interval = setInterval(balanceRefetch, 15000);
       return () => clearInterval(interval);
     }
-  }, [approveSuccess, balanceRefetch]);
+  }, [approveSuccess, approveUSDTSuccess, balanceRefetch]);
   // --------------------
   // BUY TICKETS
   // --------------------
@@ -238,7 +238,19 @@ const BuyTicketsModal = () => {
     chainId: 1,
     value:
       tokenToUse === "eth"
-        ? BigInt(ticketAmount) * (balances?.[4].result as bigint[])?.[0] || 0n
+        ? BigInt(ticketAmount) *
+            (
+              balances?.[4]?.result as [
+                bigint,
+                bigint,
+                bigint,
+                bigint,
+                bigint,
+                bigint,
+                `0x${string}`,
+                boolean
+              ]
+            )?.[0] || 0n
         : 0n,
   });
 
@@ -272,11 +284,10 @@ const BuyTicketsModal = () => {
       wallet: (balances?.[2]?.result as bigint) || 0n,
       allowance: (balances?.[3]?.result as bigint) || 0n,
       decimals: 18,
-      price: ((balances?.[5]?.result as bigint[]) || [])?.[0] || 0n,
+      price: ((balances?.[5]?.result as any) || [])?.[0] || 0n,
       tokenPrice:
-        (((balances?.[8]?.result as bigint[])?.[1] || 0n) *
-          roundInfo.ethPrice) /
-        ((balances?.[8]?.result as bigint[])?.[0] || 1n),
+        (((balances?.[8]?.result as any)?.[1] || 0n) * roundInfo.ethPrice) /
+        ((balances?.[8]?.result as any)?.[0] || 1n),
       priceDivisor: 1e8,
       symbol: "SHIB",
     },
@@ -285,7 +296,7 @@ const BuyTicketsModal = () => {
       allowance: (balances?.[7]?.result as bigint) || 0n,
       decimals: 6,
       tokenPrice: 10n ** 18n,
-      price: ((balances?.[9]?.result as bigint[]) || [])?.[0] || 0n,
+      price: ((balances?.[9]?.result as any) || [])?.[0] || 0n,
       priceDivisor: 1e6,
       symbol: "USDC",
     },
@@ -294,7 +305,7 @@ const BuyTicketsModal = () => {
       allowance: (balances?.[11]?.result as bigint) || 0n,
       decimals: 6,
       tokenPrice: 10n ** 18n,
-      price: ((balances?.[12]?.result as bigint[]) || [])?.[0] || 0n,
+      price: ((balances?.[12]?.result as any) || [])?.[0] || 0n,
       priceDivisor: 1e6,
       symbol: "USDT",
     },
@@ -302,7 +313,7 @@ const BuyTicketsModal = () => {
       wallet: (balanceData?.value as bigint) || 0n,
       allowance: 1n,
       decimals: 18,
-      price: ((balances?.[4]?.result as bigint[]) || [])?.[0] || 0n,
+      price: ((balances?.[4]?.result as any) || [])?.[0] || 0n,
       tokenPrice: roundInfo.ethPrice,
       symbol: "ETH",
       priceDivisor: 1e8,
