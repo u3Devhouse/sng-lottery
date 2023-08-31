@@ -317,7 +317,7 @@ const Card = () => {
                     </td>
                   </tr>
                   <tr>
-                    <td className="">BLZE Burn</td>
+                    <td className="">Burns</td>
                     <td className="text-right text-red-500 font-bold">
                       {(
                         Number(roundInfo?.[4].result?.[3] || 0n) / 1e18
