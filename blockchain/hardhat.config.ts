@@ -3,6 +3,7 @@ import "@nomicfoundation/hardhat-toolbox";
 import "hardhat-gas-reporter"
 import "solidity-coverage"
 import "dotenv/config"
+import "@nomicfoundation/hardhat-foundry";
 
 const pkey = process.env.DEPLOYER_TEST
 const sepolia_key = process.env.SEPOLIA_KEY
