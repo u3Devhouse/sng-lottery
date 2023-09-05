@@ -472,6 +472,9 @@ const BuyTicketsModal = () => {
                           const ticket: TicketView = [0, 0, 0, 0, 0];
                           for (let i = 0; i < 5; i++) {
                             let num = Math.floor(Math.random() * 63);
+                            while (ticket.includes(num) && i > 0) {
+                              num = Math.floor(Math.random() * 63);
+                            }
                             ticket[i] = num;
                           }
                           return ticket;
