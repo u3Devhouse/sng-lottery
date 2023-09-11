@@ -764,7 +764,6 @@ contract BlazeLottery is
         roundInfo[currentRound].endRound =
             playingRound.endRound +
             roundDuration;
-        roundInfo[currentRound].distribution = distributionPercentages;
         if (roundInfo[currentRound].price == 0)
             roundInfo[currentRound].price = playingRound.price;
     }
