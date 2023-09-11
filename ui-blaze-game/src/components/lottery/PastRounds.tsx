@@ -139,6 +139,10 @@ const PastRounds = () => {
         Pending Rounds
       </div>
     );
+  const roundPot =
+    (data?.[0] || 0n) -
+    (matchesInfo?.[1]?.result?.[3] || 0n) -
+    (matchesInfo?.[1]?.result?.[4] || 0n);
   return (
     <>
       <div className="card bg-secondary-bg rounded-3xl overflow-hidden border-golden-dark border-4 md:max-w-md w-[300px] md:min-w-[450px] font-outfit">
@@ -404,7 +408,7 @@ const PastRounds = () => {
                       ).toLocaleString()}
                     </td>
                   </tr>
-                  <tr>
+                  {/* <tr>
                     <td className="">Burn</td>
                     <td className="text-red-500 text-right" colSpan={2}>
                       {(
@@ -421,7 +425,7 @@ const PastRounds = () => {
                       ).toLocaleString()}
                       &nbsp;BLZE
                     </td>
-                  </tr>
+                  </tr> */}
                 </tbody>
               </table>
             </div>

@@ -97,6 +97,11 @@ const Card = () => {
 
   const detailCollapseRef = useRef<HTMLInputElement>(null);
 
+  const prizePot =
+    parseFloat(formatEther(roundInfo?.[0]?.result?.[0] || 0n)) -
+    parseFloat(formatEther(roundInfo?.[4]?.result?.[3] || 0n)) -
+    parseFloat(formatEther(roundInfo?.[4]?.result?.[4] || 0n));
+
   return (
     <>
       <div className="card bg-secondary-bg rounded-3xl overflow-hidden border-golden-dark border-4 md:max-w-md w-[300px] md:min-w-[450px] font-outfit">
@@ -316,7 +321,7 @@ const Card = () => {
                       ).toLocaleString()}
                     </td>
                   </tr>
-                  <tr>
+                  {/* <tr>
                     <td className="">Burns</td>
                     <td className="text-right text-red-500 font-bold">
                       {(
@@ -349,7 +354,7 @@ const Card = () => {
                         ).toFixed(2)
                       ).toLocaleString()}
                     </td>
-                  </tr>
+                  </tr> */}
                 </tbody>
               </table>
             </div>
