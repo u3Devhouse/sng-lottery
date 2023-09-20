@@ -1,7 +1,7 @@
 
 export const blazeToken = "0x1831186e1cBd4FA7F4F23D8453a68969067e34e1"
 export const blazePair = "0x6BfCDA57Eff355A1BfFb76c584Fea20188B12166"
-export const lotteryContract = "0x3D43F33396eC7126aB5b9e7ecA250464d6e80e94"
+export const lotteryContract = "0x3564D4997313136283B0514883D2458C171C782b"
 export const ethPriceFeed ="0x5f4ec3df9cbd43714fe2740f5e3616155c5b8419"
 export const ShibToken = "0x95aD61b0a150d79219dCF64E1E6Cc01f0B64C4cE"
 export const USDCToken = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
