@@ -118,7 +118,7 @@ const Card = () => {
         <div className="card-body flex flex-row items-center justify-evenly border-b-2 border-b-gray-400 pb-4">
           <div className="flex flex-col items-center">
             <div className="text-xl whitespace-pre-wrap text-center">
-              Prize Amount
+              Jackpot
               <sup
                 className="cursor-pointer"
                 onClick={() => {
@@ -137,7 +137,7 @@ const Card = () => {
                   {parseFloat(
                     (
                       blazePrice *
-                      parseFloat(formatEther(roundInfo?.[0]?.result?.[0] || 0n))
+                      parseFloat(formatEther(roundInfo?.[4].result?.[2] || 0n))
                     ).toFixed(2)
                   ).toLocaleString()}
                 </span>
@@ -147,7 +147,7 @@ const Card = () => {
                 <span className="">
                   {parseFloat(
                     parseFloat(
-                      formatEther(roundInfo?.[0]?.result?.[0] || 0n)
+                      formatEther(roundInfo?.[4].result?.[2] || 0n)
                     ).toFixed(2)
                   ).toLocaleString()}
                 </span>{" "}
