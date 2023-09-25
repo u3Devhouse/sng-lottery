@@ -22,4 +22,6 @@ contract AltTest is Test {
         vm.prank(user1);
         lottery.buyTicketsWithAltTokens{value: ethAmount}(tickets, address(0));
     }
+
+    function test_potRollover() public {}
 }
