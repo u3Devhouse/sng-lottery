@@ -353,7 +353,7 @@ const BuyTicketsModal = () => {
       wallet: (balances?.[13]?.result as bigint) || 0n,
       allowance: (balances?.[14]?.result as bigint) || 0n,
       decimals: 18,
-      price: parseEther("1"), //((balances?.[15]?.result as any) || [])?.[0] || 0n,
+      price: ((balances?.[15]?.result as any) || [])?.[0] || 0n,
       priceDivisor: 1e8,
       tokenPrice:
         (roundInfo.ethPrice * ((balances?.[16]?.result as any)?.[1] || 0n)) /
