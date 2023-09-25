@@ -400,13 +400,27 @@ const BuyTicketsModal = () => {
                         setTokenToUse(e.target.value as TokenTypes)
                       }
                     >
-                      <option disabled>Tokens Accepted</option>
-                      <option value="blaze">$BLZE</option>
-                      <option value="shib">$SHIB</option>
-                      <option value="usdt">$USDT</option>
-                      <option value="usdc">$USDC</option>
-                      <option value="eth">$ETH</option>
-                      <option value="preme">$PREME</option>
+                      <option className="bg-slate-700 text-white/70" disabled>
+                        Tokens Accepted
+                      </option>
+                      <option className="bg-slate-700 text-white" value="blaze">
+                        $BLZE
+                      </option>
+                      <option className="bg-slate-700 text-white" value="shib">
+                        $SHIB
+                      </option>
+                      <option className="bg-slate-700 text-white" value="usdt">
+                        $USDT
+                      </option>
+                      <option className="bg-slate-700 text-white" value="usdc">
+                        $USDC
+                      </option>
+                      <option className="bg-slate-700 text-white" value="eth">
+                        $ETH
+                      </option>
+                      <option className="bg-slate-700 text-white" value="preme">
+                        $PREME
+                      </option>
                     </select>
                   </td>
                 </tr>
