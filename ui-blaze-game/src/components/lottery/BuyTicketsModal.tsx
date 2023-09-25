@@ -25,6 +25,8 @@ import {
   lotteryContract,
   uniswapV2PairAbi,
   usdtAbi,
+  PremeToken,
+  PremeETHPair,
 } from "@/data/contracts";
 import {
   BaseError,
@@ -50,6 +52,7 @@ const tokenAddresses = {
   usdt: USDTToken,
   eth: zeroAddress,
   blaze: blazeToken,
+  preme: PremeToken,
 } as const;
 
 const BuyTicketsModal = () => {
@@ -150,6 +153,33 @@ const BuyTicketsModal = () => {
         args: [USDTToken],
         chainId: 1,
       },
+      {
+        address: PremeToken,
+        abi: erc20ABI,
+        functionName: "balanceOf",
+        args: [address || zeroAddress],
+        chainId: 1,
+      },
+      {
+        address: PremeToken,
+        abi: erc20ABI,
+        functionName: "allowance",
+        args: [address || zeroAddress, lotteryContract],
+        chainId: 1,
+      },
+      {
+        address: lotteryContract,
+        abi: lotteryAbi,
+        functionName: "acceptedTokens",
+        args: [PremeToken],
+        chainId: 1,
+      },
+      {
+        address: PremeETHPair,
+        abi: uniswapV2PairAbi,
+        functionName: "getReserves",
+        chainId: 1,
+      },
     ],
   });
   const roundInfo = useAtomValue(blazeInfo);
@@ -189,17 +219,20 @@ const BuyTicketsModal = () => {
     functionName: "approve",
     args: [lotteryContract, parseUnits("1000000", 6)],
   });
-  const { config: approveConfig } = usePrepareContractWrite({
-    address: tokenAddresses[tokenToUse], //selected Token,
-    abi: erc20ABI,
-    functionName: "approve",
-    args: [
-      lotteryContract,
-      tokenToUse == "usdt"
-        ? parseUnits("100000", 6)
-        : tokenData?.totalSupply.value || parseEther("10000000000000000000"),
-    ],
-  });
+  const { config: approveConfig, error: approveConfigErr } =
+    usePrepareContractWrite({
+      address: tokenAddresses[tokenToUse], //selected Token,
+      abi: erc20ABI,
+      functionName: "approve",
+      args: [
+        lotteryContract,
+        tokenToUse == "usdt"
+          ? parseUnits("100000", 6)
+          : tokenData?.totalSupply.value || parseEther("10000000000000000000"),
+      ],
+    });
+
+  console.log(approveConfigErr);
   const { write: approveWrite, data: approveTxData } =
     useContractWrite(approveConfig);
   const { write: approveUSDTWrite, data: approveUSDTTxData } =
@@ -316,7 +349,20 @@ const BuyTicketsModal = () => {
       symbol: "ETH",
       priceDivisor: 1e8,
     },
+    preme: {
+      wallet: (balances?.[13]?.result as bigint) || 0n,
+      allowance: (balances?.[14]?.result as bigint) || 0n,
+      decimals: 18,
+      price: parseEther("1"), //((balances?.[15]?.result as any) || [])?.[0] || 0n,
+      priceDivisor: 1e8,
+      tokenPrice:
+        (roundInfo.ethPrice * ((balances?.[16]?.result as any)?.[1] || 0n)) /
+        ((balances?.[16]?.result as any)?.[0] || 1n),
+      symbol: "PREME",
+    },
   };
+
+  console.log({ tokenInfo, balances });
 
   return (
     <dialog className="modal font-outfit" open={openModal}>
@@ -360,6 +406,7 @@ const BuyTicketsModal = () => {
                       <option value="usdt">$USDT</option>
                       <option value="usdc">$USDC</option>
                       <option value="eth">$ETH</option>
+                      <option value="preme">$PREME</option>
                     </select>
                   </td>
                 </tr>
@@ -494,7 +541,7 @@ const BuyTicketsModal = () => {
                       "loading btn-disabled loading-spinner"
                   )}
                   onClick={() =>
-                    tokenToUse == "usdt"
+                    tokenToUse === "usdt"
                       ? approveUSDTWrite?.()
                       : approveWrite?.()
                   }
