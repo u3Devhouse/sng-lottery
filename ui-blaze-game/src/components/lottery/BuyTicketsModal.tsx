@@ -32,16 +32,22 @@ import {
   BaseError,
   formatEther,
   formatUnits,
+  maxUint256,
   parseEther,
   parseUnits,
   toHex,
   zeroAddress,
 } from "viem";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useImmer } from "use-immer";
 import { BiSolidEdit } from "react-icons/bi";
 import classNames from "classnames";
 import TicketNumber from "./TicketNumber";
+import useAcceptedTokens, {
+  AcceptedTokens,
+  acceptedTokens,
+  tokenList,
+} from "@/hooks/useAcceptedTokens";
 
 type TicketView = [number, number, number, number, number];
 type TokenTypes = "blaze" | "eth" | "shib" | "usdt";
@@ -182,8 +188,9 @@ const BuyTicketsModal = () => {
       },
     ],
   });
+  const { contractData, tokenListContracts, ethBalance } = useAcceptedTokens();
   const roundInfo = useAtomValue(blazeInfo);
-  const [tokenToUse, setTokenToUse] = useState<TokenTypes>("blaze");
+  const [tokenToUse, setTokenToUse] = useState<AcceptedTokens>("blze");
   const [openModal, setOpenModal] = useAtom(openBuyTicketModal);
   const [ticketAmount, setTicketAmount] = useState(0);
   const [allTickets, setAllTickets] = useImmer<Array<TicketView>>([]);
@@ -221,15 +228,10 @@ const BuyTicketsModal = () => {
   });
   const { config: approveConfig, error: approveConfigErr } =
     usePrepareContractWrite({
-      address: tokenAddresses[tokenToUse], //selected Token,
+      address: acceptedTokens[tokenToUse].address as `0x${string}`, //selected Token,
       abi: erc20ABI,
       functionName: "approve",
-      args: [
-        lotteryContract,
-        tokenToUse == "usdt"
-          ? parseUnits("100000", 6)
-          : tokenData?.totalSupply.value || parseEther("10000000000000000000"),
-      ],
+      args: [lotteryContract, maxUint256],
     });
 
   console.log(approveConfigErr);
@@ -267,7 +269,7 @@ const BuyTicketsModal = () => {
     address: lotteryContract,
     abi: lotteryAbi,
     functionName: "buyTicketsWithAltTokens",
-    args: [ticketsInHex, tokenAddresses[tokenToUse]],
+    args: [ticketsInHex, acceptedTokens[tokenToUse].address as `0x${string}`],
     chainId: 1,
     value:
       tokenToUse === "eth"
@@ -362,7 +364,51 @@ const BuyTicketsModal = () => {
     },
   };
 
-  console.log({ tokenInfo, balances });
+  // console.log({ tokenInfo, balances, contractData, tokenListContracts });
+
+  const selectedTokenData = useMemo(() => {
+    const startIndex =
+      tokenListContracts.tokens[tokenToUse]?.startIndex ?? null;
+    const totalCalls =
+      tokenListContracts.tokens[tokenToUse]?.totalCalls ?? null;
+    if (startIndex === null || !contractData) return [];
+    if (tokenToUse === "eth") {
+      return [
+        { result: ethBalance },
+        { result: 1n },
+        { result: 18n },
+        contractData[startIndex],
+      ];
+    }
+    return contractData.slice(startIndex, startIndex + totalCalls);
+  }, [tokenListContracts, tokenToUse, contractData, ethBalance]);
+
+  const tokenPrice = useMemo(() => {
+    const priceInTokens = (selectedTokenData?.[3]?.result?.[0] || 1n) as bigint;
+    if (["usdt", "usdc", "dai"].includes(tokenToUse))
+      return (
+        (priceInTokens * parseEther("1")) /
+        parseUnits(
+          "1",
+          parseInt((selectedTokenData?.[2]?.result || 1n).toString())
+        )
+      );
+    if (tokenToUse === "eth")
+      return (roundInfo.ethPrice * priceInTokens) / parseUnits("1", 8);
+    const token0 = (selectedTokenData?.[4]?.result?.[0] || 1n) as bigint;
+    const token1 = (selectedTokenData?.[4]?.result?.[1] || 1n) as bigint;
+
+    if (token0 > token1)
+      return (
+        (roundInfo.ethPrice * priceInTokens * token1) / (token0 * 100000000n)
+      );
+    else
+      return (
+        (roundInfo.ethPrice * priceInTokens * token0) / (token1 * 100000000n)
+      );
+  }, [selectedTokenData, tokenToUse, roundInfo]);
+
+  console.log(selectedTokenData);
 
   return (
     <dialog className="modal font-outfit" open={openModal}>
@@ -397,30 +443,23 @@ const BuyTicketsModal = () => {
                       className="select select-sm select-primary"
                       value={tokenToUse}
                       onChange={(e) =>
-                        setTokenToUse(e.target.value as TokenTypes)
+                        setTokenToUse(e.target.value as AcceptedTokens)
                       }
                     >
                       <option className="bg-slate-700 text-white/70" disabled>
                         Tokens Accepted
                       </option>
-                      <option className="bg-slate-700 text-white" value="blaze">
-                        $BLZE
-                      </option>
-                      <option className="bg-slate-700 text-white" value="shib">
-                        $SHIB
-                      </option>
-                      <option className="bg-slate-700 text-white" value="usdt">
-                        $USDT
-                      </option>
-                      <option className="bg-slate-700 text-white" value="usdc">
-                        $USDC
-                      </option>
-                      <option className="bg-slate-700 text-white" value="eth">
-                        $ETH
-                      </option>
-                      <option className="bg-slate-700 text-white" value="preme">
-                        $PREME
-                      </option>
+                      {tokenList.map((token) => {
+                        return (
+                          <option
+                            className="bg-slate-700 text-white"
+                            value={token}
+                            key={`option-${token}`}
+                          >
+                            {token.toUpperCase()}
+                          </option>
+                        );
+                      })}
                     </select>
                   </td>
                 </tr>
@@ -429,28 +468,35 @@ const BuyTicketsModal = () => {
                   <td className="text-right text-golden/80">
                     {parseFloat(
                       formatUnits(
-                        tokenInfo[tokenToUse].price,
-                        tokenInfo[tokenToUse].decimals
+                        (selectedTokenData?.[3]?.result?.[0] as bigint) || 0n,
+                        parseInt(
+                          (
+                            (selectedTokenData?.[2]?.result as bigint) || 0n
+                          ).toString()
+                        )
                       )
-                    ).toLocaleString()}
+                    ).toLocaleString(undefined, { maximumFractionDigits: 6 })}
                     &nbsp;$
-                    {tokenInfo[tokenToUse].symbol}
+                    {tokenToUse.toUpperCase()}
                   </td>
                 </tr>
                 <tr className="border-slate-500">
                   <td>Wallet</td>
                   <td className="text-right text-golden/80">
                     {parseFloat(
-                      parseFloat(
-                        formatUnits(
-                          tokenInfo[tokenToUse].wallet,
-                          tokenInfo[tokenToUse].decimals
+                      formatUnits(
+                        (selectedTokenData?.[0]?.result as bigint) || 0n,
+                        parseInt(
+                          (
+                            (selectedTokenData?.[2]?.result as bigint) || 0n
+                          ).toString()
                         )
-                      ).toFixed(tokenToUse === "eth" ? 6 : 0)
+                      )
                     ).toLocaleString(undefined, {
-                      maximumFractionDigits: tokenToUse === "eth" ? 6 : 0,
+                      maximumFractionDigits: 6,
                     })}
-                    &nbsp;${tokenInfo[tokenToUse].symbol}
+                    &nbsp;$
+                    {tokenToUse.toUpperCase()}
                   </td>
                 </tr>
               </tbody>
@@ -478,37 +524,36 @@ const BuyTicketsModal = () => {
                       ticketAmount *
                       parseFloat(
                         formatUnits(
-                          tokenInfo[tokenToUse].price,
-                          tokenInfo[tokenToUse].decimals
+                          (selectedTokenData?.[3]?.result?.[0] as bigint) || 0n,
+                          parseInt(
+                            (
+                              (selectedTokenData?.[2]?.result as bigint) || 0n
+                            ).toString()
+                          )
                         )
                       )
-                    ).toLocaleString()}
-                    &nbsp;${tokenInfo[tokenToUse].symbol}
+                    ).toLocaleString(undefined, { maximumFractionDigits: 6 })}
+                    &nbsp;$
+                    {tokenToUse.toUpperCase()}
                   </td>
                 </tr>
                 <tr className="border-slate-500 text-gray-500">
                   <td>Total USD</td>
                   <td className="text-right text-primary">
                     {(
-                      (ticketAmount *
-                        parseFloat(
-                          formatEther(
-                            tokenInfo[tokenToUse].price *
-                              tokenInfo[tokenToUse].tokenPrice
-                          )
-                        )) /
-                      (tokenInfo[tokenToUse].priceDivisor || 1)
-                    ).toLocaleString()}
+                      ticketAmount * parseFloat(formatUnits(tokenPrice, 18))
+                    ).toLocaleString(undefined, { maximumFractionDigits: 6 })}
                     &nbsp;$USD
                   </td>
                 </tr>
               </tbody>
             </table>
             <div className="flex flex-row items-center justify-center gap-x-4 p-4">
-              {parseFloat(formatEther(tokenInfo[tokenToUse].allowance)) >
-                (ticketAmount || 1) *
-                  parseFloat(formatEther(tokenInfo[tokenToUse].price)) ||
-              tokenToUse == "eth" ? (
+              {true ? (
+                // parseFloat(formatEther(tokenInfo[tokenToUse].allowance)) >
+                //   (ticketAmount || 1) *
+                //     parseFloat(formatEther(tokenInfo[tokenToUse].price)) ||
+                // tokenToUse == "eth"
                 <>
                   <button
                     className="btn btn-secondary btn-sm min-w-[126px]"
@@ -581,7 +626,7 @@ const BuyTicketsModal = () => {
               <button
                 className="btn btn-secondary"
                 onClick={() => {
-                  if (tokenToUse !== "blaze") {
+                  if (tokenToUse !== "blze") {
                     if (!buyWithAlt) return;
                     setView(3);
                     buyWithAlt();
