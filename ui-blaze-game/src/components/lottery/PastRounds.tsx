@@ -23,6 +23,8 @@ import {
 import TicketNumber from "./TicketNumber";
 import { GrView } from "react-icons/gr";
 
+// const address = "";
+
 const PastRounds = () => {
   const { address } = useAccount();
   const blazeLott = useAtomValue(blazeInfo);
@@ -121,6 +123,7 @@ const PastRounds = () => {
       userWinners.map((winner) => BigInt(winner.index)),
       userWinners.map((winner) => winner.matches),
     ],
+    enabled: userWinners.length > 0,
   });
 
   const { write, data: claimData, isLoading } = useContractWrite(config);
@@ -139,10 +142,6 @@ const PastRounds = () => {
         Pending Rounds
       </div>
     );
-  const roundPot =
-    (data?.[0] || 0n) -
-    (matchesInfo?.[1]?.result?.[3] || 0n) -
-    (matchesInfo?.[1]?.result?.[4] || 0n);
   return (
     <>
       <div className="card bg-secondary-bg rounded-3xl overflow-hidden border-golden-dark border-4 md:max-w-md w-[300px] md:min-w-[450px] font-outfit">
