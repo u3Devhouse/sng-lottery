@@ -7,3 +7,6 @@
 [submodule "foundry-lottery/lib/openzeppelin-contracts"]
 	path = foundry-lottery/lib/openzeppelin-contracts
 	url = https://github.com/OpenZeppelin/openzeppelin-contracts
+[submodule "foundry-lottery/lib/chainlink"]
+	path = foundry-lottery/lib/chainlink
+	url = https://github.com/smartcontractkit/chainlink
