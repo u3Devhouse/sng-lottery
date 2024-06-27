@@ -16,10 +16,10 @@ pragma solidity 0.8.20;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
-import "@chainlink/contracts/src/v0.8/AutomationCompatible.sol";
-import "@chainlink/contracts/src/v0.8/VRFConsumerBaseV2.sol";
-import "@chainlink/contracts/src/v0.8/interfaces/VRFCoordinatorV2Interface.sol";
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import "chainlink/src/v0.8/automation/AutomationCompatible.sol";
+import "chainlink/src/v0.8/vrf/VRFConsumerBaseV2.sol";
+import "chainlink/src/v0.8/vrf/interfaces/VRFCoordinatorV2Interface.sol";
 import {IUniswapV2Pair} from "./interfaces/IUniswap.sol";
 
 //-------------------------------------------------------------------------
@@ -200,7 +200,7 @@ contract BlazeLottery is
         address _team,
         address _burnWallet,
         address _otcWallet
-    ) VRFConsumerBaseV2(_vrfCoordinator) {
+    ) VRFConsumerBaseV2(_vrfCoordinator) Ownable(msg.sender) {
         burnWallet = _burnWallet;
         // _tokenAccepted is BLZ token
         currency = IERC20Burnable(_tokenAccepted);
