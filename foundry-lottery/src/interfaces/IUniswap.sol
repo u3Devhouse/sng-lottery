@@ -331,3 +331,9 @@ interface IUniswapV2Router02 is IUniswapV2Router01 {
         uint256 deadline
     ) external;
 }
+
+interface ISNGRouter is IUniswapV2Router02 {
+    function weth() external view returns (address);
+
+    function router() external view returns (address);
+}
