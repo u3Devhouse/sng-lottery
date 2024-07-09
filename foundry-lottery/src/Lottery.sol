@@ -23,8 +23,6 @@ import "chainlink/src/v0.8/vrf/interfaces/VRFCoordinatorV2Interface.sol";
 import {ISNGRouter, IUniswapV2Router02} from "./interfaces/IUniswap.sol";
 import {AggregatorV3Interface} from "chainlink/src/v0.8/shared/interfaces/AggregatorV3Interface.sol";
 
-// @todo 1. Add Uniswap SwapNGo Router
-// @todo 2. rework so instead of BLZE token we use SNG token
 // @todo 3. Chainlink for BSC
 // @todo 4. Single price in USD
 //          a. get BNB price ($575)
@@ -32,6 +30,7 @@ import {AggregatorV3Interface} from "chainlink/src/v0.8/shared/interfaces/Aggreg
 //          c. total BNB amoun to receive: tickets * 0.0035 BNB
 //          d. getAmountsIn router to get tokens to receive from user to sell.
 //  *. update j reset on line 631 ✅
+// @todo add markup for tokens with transfer fees
 
 //-------------------------------------------------------------------------
 //    ERRORS
@@ -87,16 +86,6 @@ contract SNGLottery is
         uint64 winnerNumber; // We'll need to process this so it matches the same format as the tickets
         bool completed;
     }
-    struct AcceptedTokens {
-        uint price;
-        uint match3;
-        uint match4;
-        uint match5;
-        uint dev;
-        uint burn;
-        address v2Pair;
-        bool accepted;
-    }
     //-------------------------------------------------------------------------
     //    State Variables
     //-------------------------------------------------------------------------
@@ -107,9 +96,6 @@ contract SNGLottery is
     // mapping(uint => address[]) private roundUsers;
     // mapping(address  => mapping(uint => UserTickets))
     //     private userTickets;
-    // We will accept BLZE, ETH, SHIB, and USDC
-    mapping(address _token => AcceptedTokens _acceptedTokens)
-        public acceptedTokens;
 
     mapping(address _upkeep => bool _enabled) public upkeeper;
     mapping(uint _randomnessRequestID => Matches _winnerMatches) public matches;
@@ -219,7 +205,12 @@ contract SNGLottery is
         pcsRouter = IUniswapV2Router02(sngRouter.router());
         distributionPercentages = [25, 25, 25];
         teamWallet = _team;
+        teamFee = 25;
     }
+
+    receive() external payable {}
+
+    fallback() external payable {}
 
     //-------------------------------------------------------------------------
     //    EXTERNAL Functions
@@ -228,9 +219,8 @@ contract SNGLottery is
      * @notice Buy tickets with ALT tokens or ETH
      * @param tickets Array of tickets to buy. The tickets need to have 5 numbers each spanning 8 bits in length
      * @param token Address of the token to use to buy tickets
-     * @dev BLZE buys not accepted here
      */
-    function buyTicketsWithAltTokens(
+    function buyTickets(
         uint64[] calldata tickets,
         address token
     ) external payable nonReentrant activeRound {
@@ -243,19 +233,19 @@ contract SNGLottery is
         totalPrice = totalPrice * tickets.length;
         //========================
         //========================
-        uint bnbForTeam;
+        // calculate team wallet amount
+        uint bnbForTeam = (totalPrice * teamFee) / PERCENTAGE_BASE;
+        totalPrice -= bnbForTeam;
 
         if (token == address(0)) {
-            if (msg.value < totalPrice)
+            if (msg.value < totalPrice + bnbForTeam)
                 revert SNGLot__InvalidETHAmount(msg.value, totalPrice);
 
-            // Transfer to Team wallet
-            bnbForTeam = (totalPrice * teamFee) / PERCENTAGE_BASE;
-            totalPrice -= bnbForTeam;
             // swap ETH for CURRENCY
             address[] memory path = new address[](2);
             path[0] = WETH;
             path[1] = address(currency);
+            // reusing variable to save gas
             toBuy = currency.balanceOf(address(this));
 
             sngRouter.swapExactETHForTokensSupportingFeeOnTransferTokens{
@@ -264,10 +254,67 @@ contract SNGLottery is
 
             toBuy = currency.balanceOf(address(this)) - toBuy;
         } else if (token == address(currency)) {
-            // @todo check what happens if buy is with currency
+            // how many tokens to get from client
+            address[] memory path = new address[](2);
+            path[0] = token;
+            path[1] = WETH;
+            // Reuse variable
+            uint[] memory amounts = pcsRouter.getAmountsIn(
+                totalPrice + bnbForTeam,
+                path
+            );
+            currency.transferFrom(msg.sender, address(this), amounts[0]);
             // 25% is sold for BNB
+            bnbForTeam = (amounts[0] * teamFee) / PERCENTAGE_BASE;
             // 75% is kept as SNG for prize pot
-        } else {}
+            toBuy = amounts[0] - bnbForTeam;
+            // swap the BNB for team amount
+            currency.approve(address(sngRouter), type(uint).max);
+            sngRouter.swapExactTokensForETHSupportingFeeOnTransferTokens(
+                bnbForTeam,
+                0,
+                path,
+                address(this),
+                block.timestamp
+            );
+            bnbForTeam = address(this).balance;
+        } else {
+            // how many tokens to get from client
+            address[] memory path = new address[](2);
+            path[0] = token;
+            path[1] = WETH;
+            // Reuse variable
+            uint[] memory amounts = pcsRouter.getAmountsIn(
+                totalPrice + bnbForTeam,
+                path
+            );
+            ///@todo change for safe transfer
+            IERC20(token).transferFrom(msg.sender, address(this), amounts[0]);
+            currency.approve(address(sngRouter), type(uint).max);
+            // swap tokens for BNB
+            sngRouter.swapExactTokensForETHSupportingFeeOnTransferTokens(
+                amounts[0],
+                0,
+                path,
+                address(this),
+                block.timestamp
+            );
+            toBuy = address(this).balance;
+            bnbForTeam = (toBuy * teamFee) / PERCENTAGE_BASE;
+            toBuy -= bnbForTeam;
+            // swap BNB for SNG
+            path[0] = WETH;
+            path[1] = address(currency);
+            // Amounts [1] holds the current balance of the contract
+            amounts[1] = currency.balanceOf(address(this));
+            sngRouter.swapExactETHForTokensSupportingFeeOnTransferTokens{
+                value: toBuy
+            }(0, path, address(this), block.timestamp);
+            // tokens to distribute are the new balance - the old balance which is the amount bought
+            toBuy = currency.balanceOf(address(this)) - amounts[1];
+            // @note this amount is restated so that no tokens are left behind
+            bnbForTeam = address(this).balance;
+        }
 
         uint[] memory dist = new uint[](3);
         dist[0] = distributionPercentages[0];
@@ -277,27 +324,6 @@ contract SNGLottery is
         _addToPot(toBuy, currentRound, dist);
         // Buy Tickets
         _buyTickets(tickets, 0, msg.sender);
-    }
-
-    /**
-     *
-     * @param tickets Array of tickets to buy. The tickets need to have 5 numbers each spanning 8 bits in length
-     * @dev each number will be constrained to 6 bit numbers e.g. 0 - 63
-     * @dev since each number is 6 bits in length but stored on an 8 bit space, we'll be using uint64 to store the numbers
-     *      E.G.
-     *      Storing the ticket with numbers 35, 12, 0, 63, 1
-     *      each number in 8 bit hex becomes 0x23, 0x0C, 0x00, 0x3F, 0x01
-     *      number to store = 0x000000230C003F01
-     *      Although we will not check for this, the numbers will be be checked using bit shifting with a mask so any larger numbers will be ignored
-     * @dev gas cost is reduced ludicrously, however we will be relying heavily on chainlink keepers to check for winners and get the match amount data
-     */
-    function buyTickets(
-        uint64[] calldata tickets
-    ) external nonReentrant activeRound {
-        RoundInfo storage playingRound = roundInfo[currentRound];
-        uint potAmount = playingRound.price * tickets.length;
-        currency.transferFrom(msg.sender, address(this), potAmount);
-        _buyTickets(tickets, potAmount, msg.sender);
     }
 
     /**
