@@ -15,7 +15,7 @@ pragma solidity ^0.8.19;
  */
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "chainlink/src/v0.8/automation/AutomationCompatible.sol";
 import "chainlink/src/v0.8/vrf/dev/VRFConsumerBaseV2Plus.sol";
 import "chainlink/src/v0.8/vrf/dev/VRFCoordinatorV2_5.sol";
