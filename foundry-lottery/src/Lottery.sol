@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.20;
+pragma solidity ^0.8.19;
 
 /**
  * @title   SNGLottery
@@ -14,16 +14,14 @@ pragma solidity 0.8.20;
  *      - Chainlink Keeper Implementation 2 -> request randomness for next round
  */
 
-import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "chainlink/src/v0.8/automation/AutomationCompatible.sol";
-import "chainlink/src/v0.8/vrf/VRFConsumerBaseV2.sol";
-import "chainlink/src/v0.8/vrf/interfaces/VRFCoordinatorV2Interface.sol";
+import "chainlink/src/v0.8/vrf/dev/VRFConsumerBaseV2Plus.sol";
+import "chainlink/src/v0.8/vrf/dev/VRFCoordinatorV2_5.sol";
 import {ISNGRouter, IUniswapV2Router02} from "./interfaces/IUniswap.sol";
 import {AggregatorV3Interface} from "chainlink/src/v0.8/shared/interfaces/AggregatorV3Interface.sol";
 
-// @todo 3. Chainlink for BSC
 // @todo 4. Single price in USD
 //          a. get BNB price ($575)
 //          b. get BNB amount in ticket price (ticket = 2$ ~ BNB = 0.0035 BNB)
@@ -55,10 +53,9 @@ error SNGLot__InvalidTokenPair();
 error SNGLot__InvalidChainId();
 
 contract SNGLottery is
-    Ownable,
     ReentrancyGuard,
     AutomationCompatible,
-    VRFConsumerBaseV2
+    VRFConsumerBaseV2Plus
 {
     //-------------------------------------------------------------------------
     //    TYPE DECLARATIONS
@@ -188,7 +185,7 @@ contract SNGLottery is
         uint64 _subscriptionId,
         address _team,
         address _burnWallet
-    ) VRFConsumerBaseV2(_vrfCoordinator) Ownable(msg.sender) {
+    ) VRFConsumerBaseV2Plus(_vrfCoordinator) {
         burnWallet = _burnWallet;
         // _tokenAccepted is BLZ token
         currency = IERC20(_tokenAccepted);
@@ -509,13 +506,20 @@ contract SNGLottery is
                 rolloverAmount(currentRound, matches[0]);
                 newRound(playingRound);
             } else {
-                uint requestId = VRFCoordinatorV2Interface(vrfCoordinator)
+                uint requestId = VRFCoordinatorV2_5(vrfCoordinator)
                     .requestRandomWords(
-                        keyHash,
-                        subscriptionId,
-                        minimumRequestConfirmations,
-                        callbackGasLimit,
-                        1
+                        VRFV2PlusClient.RandomWordsRequest({
+                            keyHash: keyHash,
+                            subId: subscriptionId,
+                            requestConfirmations: minimumRequestConfirmations,
+                            callbackGasLimit: callbackGasLimit,
+                            numWords: 1,
+                            extraArgs: VRFV2PlusClient._argsToBytes(
+                                VRFV2PlusClient.ExtraArgsV1({
+                                    nativePayment: false
+                                })
+                            )
+                        })
                     );
                 playingRound.randomnessRequestID = requestId;
                 matches[requestId].roundId = currentRound;
@@ -567,8 +571,8 @@ contract SNGLottery is
     }
 
     function fulfillRandomWords(
-        uint requestId,
-        uint256[] memory randomWords
+        uint256 requestId,
+        uint256[] calldata randomWords
     ) internal override {
         uint64 winnerNumber = uint64(randomWords[0]);
         uint64 addedMask = 0;
