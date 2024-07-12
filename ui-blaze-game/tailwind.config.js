@@ -19,10 +19,12 @@ module.exports = {
     extend: {
       colors:{
         'primary-bg': "#27072A",
-        'secondary-bg' : "#1D152B",
+        'secondary-bg' : "#0B192D",
         'primary-text': "#D6B159",
+        'secondary-light-bg': "#FFE5B6",
         'golden': "#E0B654",
         'golden-dark': "#D2A64C",
+        'sng-red': "#E30613",
       },
       fontFamily:{
         'outfit': ['var(--font-outfit)'],

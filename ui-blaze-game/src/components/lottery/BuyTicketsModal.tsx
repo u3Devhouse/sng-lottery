@@ -6,15 +6,14 @@ import Image from "next/image";
 import flame from "@/../public/jackpot.png";
 import loadingGif from "@/../public/assets/loading_flame.gif";
 //  Contracts
+import { erc20Abi } from "viem";
 import {
-  erc20ABI,
   useAccount,
   useBalance,
   useContractReads,
   useContractWrite,
-  usePrepareContractWrite,
   useToken,
-  useWaitForTransaction,
+  useWriteContract,
 } from "wagmi";
 import {
   ShibToken,
@@ -71,28 +70,28 @@ const BuyTicketsModal = () => {
     contracts: [
       {
         address: blazeToken, //blazeToken,
-        abi: erc20ABI,
+        abi: erc20Abi,
         functionName: "balanceOf",
         args: [address || zeroAddress],
         chainId: 1,
       },
       {
         address: blazeToken, //blazeToken,
-        abi: erc20ABI,
+        abi: erc20Abi,
         functionName: "allowance",
         args: [address || zeroAddress, lotteryContract],
         chainId: 1,
       },
       {
         address: ShibToken, //blazeToken,
-        abi: erc20ABI,
+        abi: erc20Abi,
         functionName: "balanceOf",
         args: [address || zeroAddress],
         chainId: 1,
       },
       {
         address: ShibToken, //blazeToken,
-        abi: erc20ABI,
+        abi: erc20Abi,
         functionName: "allowance",
         args: [address || zeroAddress, lotteryContract],
         chainId: 1,
@@ -113,14 +112,14 @@ const BuyTicketsModal = () => {
       },
       {
         address: USDCToken,
-        abi: erc20ABI,
+        abi: erc20Abi,
         functionName: "balanceOf",
         args: [address || zeroAddress],
         chainId: 1,
       },
       {
         address: USDCToken,
-        abi: erc20ABI,
+        abi: erc20Abi,
         functionName: "allowance",
         args: [address || zeroAddress, lotteryContract],
         chainId: 1,
@@ -140,14 +139,14 @@ const BuyTicketsModal = () => {
       },
       {
         address: USDTToken,
-        abi: erc20ABI,
+        abi: erc20Abi,
         functionName: "balanceOf",
         args: [address || zeroAddress],
         chainId: 1,
       },
       {
         address: USDTToken,
-        abi: erc20ABI,
+        abi: erc20Abi,
         functionName: "allowance",
         args: [address || zeroAddress, lotteryContract],
         chainId: 1,
@@ -161,14 +160,14 @@ const BuyTicketsModal = () => {
       },
       {
         address: PremeToken,
-        abi: erc20ABI,
+        abi: erc20Abi,
         functionName: "balanceOf",
         args: [address || zeroAddress],
         chainId: 1,
       },
       {
         address: PremeToken,
-        abi: erc20ABI,
+        abi: erc20Abi,
         functionName: "allowance",
         args: [address || zeroAddress, lotteryContract],
         chainId: 1,
@@ -262,90 +261,86 @@ const BuyTicketsModal = () => {
   // --------------------
   // Approve Blaze in lottery
   // --------------------
-  // const { config: approveUSDTConfig } = usePrepareContractWrite({
-  //   address: tokenAddresses.usdt,
-  //   abi: usdtAbi,
-  //   functionName: "approve",
-  //   args: [lotteryContract, parseUnits("1000000", 6)],
-  //   enabled: tokenToUse === "usdt",
-  // });
-  const { config: approveConfig, error: approveConfigErr } =
-    usePrepareContractWrite({
-      address: acceptedTokens[tokenToUse].address as `0x${string}`, //selected Token,
-      abi: erc20ABI,
-      functionName: "approve",
-      args: [lotteryContract, maxUint256],
-      enabled: tokenToUse !== "eth",
-    });
+  const { writeContract, data, isPending, isError, error, isSuccess } =
+    useWriteContract();
 
-  console.log(approveConfigErr);
-  const { write: approveWrite, data: approveTxData } =
-    useContractWrite(approveConfig);
-  // const { write: approveUSDTWrite, data: approveUSDTTxData } =
-  //   useContractWrite(approveUSDTConfig);
+  // const { config: approveConfig, error: approveConfigErr } =
+  //   usePrepareContractWrite({
+  //     address: acceptedTokens[tokenToUse].address as `0x${string}`, //selected Token,
+  //     abi: erc20Abi,
+  //     functionName: "approve",
+  //     args: [lotteryContract, maxUint256],
+  //     enabled: tokenToUse !== "eth",
+  //   });
 
-  const { isLoading: approvePendingTx, isSuccess: approveSuccess } =
-    useWaitForTransaction({ hash: approveTxData?.hash });
-  // const { isLoading: approveUSDTPendingTx, isSuccess: approveUSDTSuccess } =
-  //   useWaitForTransaction({ hash: approveUSDTTxData?.hash });
+  // console.log(approveConfigErr);
+  // const { write: approveWrite, data: approveTxData } =
+  //   useContractWrite(approveConfig);
+  // // const { write: approveUSDTWrite, data: approveUSDTTxData } =
+  // //   useContractWrite(approveUSDTConfig);
 
-  useEffect(() => {
-    if (approveSuccess) {
-      const interval = setInterval(balanceRefetch, 15000);
-      return () => clearInterval(interval);
-    }
-  }, [approveSuccess, balanceRefetch]);
+  // const { isLoading: approvePendingTx, isSuccess: approveSuccess } =
+  //   useWaitForTransaction({ hash: approveTxData?.hash });
+  // // const { isLoading: approveUSDTPendingTx, isSuccess: approveUSDTSuccess } =
+  // //   useWaitForTransaction({ hash: approveUSDTTxData?.hash });
+
+  // useEffect(() => {
+  //   if (approveSuccess) {
+  //     const interval = setInterval(balanceRefetch, 15000);
+  //     return () => clearInterval(interval);
+  //   }
+  // }, [approveSuccess, balanceRefetch]);
   // --------------------
   // BUY TICKETS
   // --------------------
-  const {
-    config,
-    error: prepErr,
-    data: prepData,
-  } = usePrepareContractWrite({
-    address: lotteryContract,
-    abi: lotteryAbi,
-    functionName: "buyTickets",
-    args: [ticketsInHex],
-    enabled: tokenToUse === "blze",
-  });
+  // const {
+  //   config,
+  //   error: prepErr,
+  //   data: prepData,
+  // } = usePrepareContractWrite({
+  //   address: lotteryContract,
+  //   abi: lotteryAbi,
+  //   functionName: "buyTickets",
+  //   args: [ticketsInHex],
+  //   enabled: tokenToUse === "blze",
+  // });
 
-  const { config: buyWithAltConfig } = usePrepareContractWrite({
-    address: lotteryContract,
-    abi: lotteryAbi,
-    functionName: "buyTicketsWithAltTokens",
-    args: [ticketsInHex, acceptedTokens[tokenToUse].address as `0x${string}`],
-    chainId: 1,
-    value:
-      tokenToUse === "eth"
-        ? BigInt(ticketAmount) * (selectedTokenData?.[3]?.result?.[0] || 0n)
-        : 0n,
-    enabled: tokenToUse !== "blze",
-  });
+  // const { config: buyWithAltConfig } = usePrepareContractWrite({
+  //   address: lotteryContract,
+  //   abi: lotteryAbi,
+  //   functionName: "buyTicketsWithAltTokens",
+  //   args: [ticketsInHex, acceptedTokens[tokenToUse].address as `0x${string}`],
+  //   chainId: 1,
+  //   value:
+  //     tokenToUse === "eth"
+  //       ? BigInt(ticketAmount) * (selectedTokenData?.[3]?.result?.[0] || 0n)
+  //       : 0n,
+  //   enabled: tokenToUse !== "blze",
+  // });
 
-  const { write, data, error, isError } = useContractWrite(config);
-  const {
-    write: buyWithAlt,
-    data: altData,
-    error: altError,
-    isError: isBuyWithAltError,
-  } = useContractWrite(buyWithAltConfig);
-  const { isSuccess } = useWaitForTransaction({
-    hash: data?.hash,
-  });
-  const { isSuccess: isBuyWithAltSuccess } = useWaitForTransaction({
-    hash: altData?.hash,
-  });
+  // const { write, error, isError } = useContractWrite(config);
+  // const {
+  //   write: buyWithAlt,
+  //   data: altData,
+  //   error: altError,
+  //   isError: isBuyWithAltError,
+  // } = useContractWrite(buyWithAltConfig);
+  // const { isSuccess } = useWaitForTransaction({
+  //   hash: data?.hash,
+  // });
+  // const { isSuccess: isBuyWithAltSuccess } = useWaitForTransaction({
+  //   hash: altData?.hash,
+  // });
 
-  console.log(selectedTokenData);
-  console.log({
-    isApproved:
-      (selectedTokenData?.[1]?.result || 0n) >=
-      BigInt(ticketAmount) * (selectedTokenData?.[3]?.result?.[0] || 0n),
-    allowance: selectedTokenData?.[1]?.result || 0n,
-    priceAmount:
-      BigInt(ticketAmount) * (selectedTokenData?.[3]?.result?.[0] || 0n),
-  });
+  // console.log(selectedTokenData);
+  // console.log({
+  //   isApproved:
+  //     (selectedTokenData?.[1]?.result || 0n) >=
+  //     BigInt(ticketAmount) * (selectedTokenData?.[3]?.result?.[0] || 0n),
+  //   allowance: selectedTokenData?.[1]?.result || 0n,
+  //   priceAmount:
+  //     BigInt(ticketAmount) * (selectedTokenData?.[3]?.result?.[0] || 0n),
+  // });
 
   return (
     <dialog className="modal font-outfit" open={openModal}>
@@ -531,9 +526,24 @@ const BuyTicketsModal = () => {
                 <button
                   className={classNames(
                     "btn btn-secondary btn-sm min-w-[126px]",
-                    approvePendingTx && "loading btn-disabled loading-spinner"
+                    isPending && "loading btn-disabled loading-spinner"
                   )}
-                  onClick={() => approveWrite?.()}
+                  onClick={() =>
+                    writeContract(
+                      {
+                        address: acceptedTokens[tokenToUse]
+                          .address as `0x${string}`, //selected Token,
+                        abi: erc20Abi,
+                        functionName: "approve",
+                        args: [lotteryContract, maxUint256],
+                      },
+                      {
+                        onSuccess: () => {
+                          balanceRefetch();
+                        },
+                      }
+                    )
+                  }
                 >
                   Approve Game
                 </button>
@@ -556,15 +566,17 @@ const BuyTicketsModal = () => {
               <button
                 className="btn btn-secondary"
                 onClick={() => {
-                  if (tokenToUse !== "blze") {
-                    if (!buyWithAlt) return;
-                    setView(3);
-                    buyWithAlt();
-                  } else {
-                    if (!write) return;
-                    setView(3);
-                    write();
-                  }
+                  // @todo ADD VALUE WHEN BUYING WITH NATIVE
+                  setView(3);
+                  writeContract({
+                    address: lotteryContract,
+                    abi: lotteryAbi,
+                    functionName: "buyTicketsWithAltTokens",
+                    args: [
+                      ticketsInHex,
+                      acceptedTokens[tokenToUse].address as `0x${string}`,
+                    ],
+                  });
                 }}
               >
                 Buy Now
@@ -661,21 +673,21 @@ const BuyTicketsModal = () => {
             <div>
               <a
                 className="text-golden underline"
-                href={`https://etherscan.io/tx/${data?.hash || ""}`}
+                href={`https://etherscan.io/tx/${data || ""}`}
               >
                 <strong>Tx:</strong>{" "}
-                {data?.hash
-                  ? data?.hash.substring(0, 4) +
+                {data
+                  ? data.substring(0, 4) +
                     "..." +
-                    data?.hash.substring(data?.hash.length - 4)
+                    data.substring(data.length - 4)
                   : "Pending Signature"}
               </a>
             </div>
 
-            {(isSuccess || isBuyWithAltSuccess) && (
+            {isSuccess && (
               <div className="text-green-600/80 text-3xl">Tickets Bought!</div>
             )}
-            {(isError || isBuyWithAltError) && (
+            {isError && (
               <div className="text-red-600/80">
                 {(error as BaseError)?.shortMessage}
               </div>

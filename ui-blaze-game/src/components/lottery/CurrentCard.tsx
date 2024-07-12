@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import format from "date-fns/format";
 import { useAtom, useSetAtom } from "jotai";
 // Contracts
-import { useAccount, useContractRead, useContractReads } from "wagmi";
+import { useAccount, useReadContract, useReadContracts } from "wagmi";
 import { formatEther, toHex, zeroAddress } from "viem";
 import {
   lotteryAbi,
@@ -22,18 +22,19 @@ import TicketNumber from "./TicketNumber";
 import { toEvenHexNoPrefix } from "@/utils/stringify";
 import { GrView } from "react-icons/gr";
 import classNames from "classnames";
+import redStar from "@/../public/assets/RedStar.svg";
 
 const Card = () => {
   const [openMyTickets, setOpenMyTickets] = useState(false);
   const setOpenBuyTicketModal = useSetAtom(openBuyTicketModal);
   const [blazeData, setBlazeInfo] = useAtom(blazeInfo);
   const { address } = useAccount();
-  const { data: currentRound, refetch: currentRoundRefetch } = useContractRead({
+  const { data: currentRound, refetch: currentRoundRefetch } = useReadContract({
     address: lotteryContract,
     abi: lotteryAbi,
     functionName: "currentRound",
   });
-  const { data: roundInfo, refetch: roundInfoRefetch } = useContractReads({
+  const { data: roundInfo, refetch: roundInfoRefetch } = useReadContracts({
     contracts: [
       {
         address: lotteryContract,
@@ -97,15 +98,10 @@ const Card = () => {
 
   const detailCollapseRef = useRef<HTMLInputElement>(null);
 
-  const prizePot =
-    parseFloat(formatEther(roundInfo?.[0]?.result?.[0] || 0n)) -
-    parseFloat(formatEther(roundInfo?.[4]?.result?.[3] || 0n)) -
-    parseFloat(formatEther(roundInfo?.[4]?.result?.[4] || 0n));
-
   return (
     <>
-      <div className="card bg-secondary-bg rounded-3xl overflow-hidden border-golden-dark border-4 md:max-w-md w-[300px] md:min-w-[450px] font-outfit">
-        <div className="bg-golden text-black px-4 py-2 flex flex-row justify-between items-center text-sm">
+      <div className="card bg-secondary-bg rounded-3xl overflow-clip border-secondary-light-bg border-4 md:max-w-md w-[300px] md:min-w-[450px] font-outfit">
+        <div className="bg-secondary-light-bg text-black px-4 py-2 flex flex-row justify-between items-center text-sm w-full">
           <div>Next Draw</div>
           <div>
             #{currentRound?.toString()} |{" "}
@@ -118,20 +114,9 @@ const Card = () => {
         <div className="card-body flex flex-row items-center justify-evenly border-b-2 border-b-gray-400 pb-4">
           <div className="flex flex-col items-center">
             <div className="text-xl whitespace-pre-wrap text-center">
-              Jackpot
-              <sup
-                className="cursor-pointer"
-                onClick={() => {
-                  detailCollapseRef.current?.click();
-                  detailCollapseRef.current?.scrollIntoView({
-                    behavior: "smooth",
-                  });
-                }}
-              >
-                *
-              </sup>
+              Prize amount
               {"\n"}
-              <span className="text-golden">
+              <span className="text-secondary-light-bg">
                 ${" "}
                 <span className="underline">
                   {parseFloat(
@@ -142,7 +127,7 @@ const Card = () => {
                   ).toLocaleString()}
                 </span>
               </span>
-              {"\n"}
+              {/* {"\n"}
               <span className="text-golden/50 text-sm">
                 <span className="">
                   {parseFloat(
@@ -152,41 +137,11 @@ const Card = () => {
                   ).toLocaleString()}
                 </span>{" "}
                 BLZE
-              </span>
+              </span> */}
             </div>
             <div className="flex flex-row items-center gap-x-4">
               <div>
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="50"
-                  height="16"
-                  viewBox="0 0 50 16"
-                  fill="none"
-                >
-                  <line
-                    x1="50"
-                    y1="15"
-                    x2="19.1489"
-                    y2="15"
-                    stroke="#E0B654"
-                    strokeWidth="2"
-                  />
-                  <line
-                    x1="50"
-                    y1="1"
-                    x2="19.1489"
-                    y2="1"
-                    stroke="#E0B654"
-                    strokeWidth="2"
-                  />
-                  <line
-                    x1="50"
-                    y1="8"
-                    y2="8"
-                    stroke="#E0B654"
-                    strokeWidth="2"
-                  />
-                </svg>
+                <Image src={redStar} alt="RedStar" />
               </div>
               <div className="py-4 whitespace-pre-wrap md:whitespace-normal text-center">
                 Tickets Playing:&nbsp;
@@ -195,35 +150,7 @@ const Card = () => {
                 </span>
               </div>
               <div>
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="50"
-                  height="16"
-                  viewBox="0 0 50 16"
-                  fill="none"
-                >
-                  <line
-                    y1="1"
-                    x2="30.8511"
-                    y2="1"
-                    stroke="#E0B654"
-                    strokeWidth="2"
-                  />
-                  <line
-                    y1="15"
-                    x2="30.8511"
-                    y2="15"
-                    stroke="#E0B654"
-                    strokeWidth="2"
-                  />
-                  <line
-                    y1="8"
-                    x2="50"
-                    y2="8"
-                    stroke="#E0B654"
-                    strokeWidth="2"
-                  />
-                </svg>
+                <Image src={redStar} alt="RedStar" />
               </div>
             </div>
             {(roundInfo?.[1]?.result?.[2] || 0n) > 0 && (
@@ -265,14 +192,14 @@ const Card = () => {
                 <thead>
                   <tr>
                     <th>Match</th>
-                    <th>Amount BLZE</th>
+                    <th>Amount SNG</th>
                     <th>Amount USD</th>
                   </tr>
                 </thead>
                 <tbody>
                   <tr>
                     <td className="">Match 3</td>
-                    <td className="text-right text-golden font-bold">
+                    <td className="text-right text-sng-red font-bold">
                       {(
                         Number(roundInfo?.[4].result?.[0] || 0n) / 1e18
                       ).toLocaleString()}
@@ -289,7 +216,7 @@ const Card = () => {
                   </tr>
                   <tr>
                     <td className="">Match 4</td>
-                    <td className="text-right text-golden font-bold">
+                    <td className="text-right text-sng-red font-bold">
                       {(
                         Number(roundInfo?.[4].result?.[1] || 0n) / 1e18
                       ).toLocaleString()}
@@ -306,7 +233,7 @@ const Card = () => {
                   </tr>
                   <tr>
                     <td className="">Match 5</td>
-                    <td className="text-right text-golden font-bold">
+                    <td className="text-right text-sng-red font-bold">
                       {(
                         Number(roundInfo?.[4].result?.[2] || 0n) / 1e18
                       ).toLocaleString()}

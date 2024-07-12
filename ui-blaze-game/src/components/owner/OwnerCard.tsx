@@ -5,12 +5,7 @@ import { lotteryAbi, lotteryContract } from "@/data/contracts";
 import classNames from "classnames";
 import { useAtomValue } from "jotai";
 import { useState } from "react";
-import {
-  useAccount,
-  usePrepareContractWrite,
-  useContractWrite,
-  useWaitForTransaction,
-} from "wagmi";
+import { useAccount, useWriteContract } from "wagmi";
 
 import intervalToDuration from "date-fns/intervalToDuration";
 import formatDuration from "date-fns/formatDuration";
@@ -31,85 +26,7 @@ const OwnerCard = () => {
     ? 0
     : parseFloat(initPrice);
 
-  const { config: activateConfig } = usePrepareContractWrite({
-    address: lotteryContract,
-    abi: lotteryAbi,
-    functionName: "activateLottery",
-    args: [BigInt(initPrice || 0) * BigInt(10 ** 18), BigInt(initEnd / 1000)],
-  });
-
-  const { config: durationConfig } = usePrepareContractWrite({
-    address: lotteryContract,
-    abi: lotteryAbi,
-    functionName: "setRoundDuration",
-    args: [BigInt(duration || 3600)],
-  });
-  const { config: potAddConfig } = usePrepareContractWrite({
-    address: lotteryContract,
-    abi: lotteryAbi,
-    functionName: "addToPot",
-    args: [
-      BigInt(potAdd || 0) * BigInt(10 ** 18),
-      BigInt(mainInfo.currentRound > 0 ? mainInfo.currentRound : 1),
-      [25n, 25n, 25n, 20n, 5n],
-    ],
-  });
-  const { config: upkeeperConfig } = usePrepareContractWrite({
-    address: lotteryContract,
-    abi: lotteryAbi,
-    functionName: "setUpkeeper",
-    args: [newUpkeeper as `0x{string}`, isUpkeeper],
-  });
-  const { config: setPriceConfig } = usePrepareContractWrite({
-    address: lotteryContract,
-    abi: lotteryAbi,
-    functionName: "setCurrencyPrice",
-    args: [
-      BigInt(initPrice || 0) * BigInt(10 ** 18),
-      BigInt(mainInfo.currentRound + 1),
-    ],
-  });
-  const { config: endRoundConfig } = usePrepareContractWrite({
-    address: lotteryContract,
-    abi: lotteryAbi,
-    functionName: "endRound",
-  });
-
-  const { write: activateLottery, data: activateData } =
-    useContractWrite(activateConfig);
-  const { write: writeDuration, data: durationData } =
-    useContractWrite(durationConfig);
-  const {
-    write: addToPot,
-    data: potData,
-    error: potError,
-    isError,
-  } = useContractWrite(potAddConfig);
-  const { write: setUpkeep, data: upkeepData } =
-    useContractWrite(upkeeperConfig);
-  const { write: setPrice, data: priceSetData } =
-    useContractWrite(setPriceConfig);
-  const { write: endRound, data: endRoundData } =
-    useContractWrite(endRoundConfig);
-
-  const { isLoading: activating } = useWaitForTransaction({
-    hash: activateData?.hash,
-  });
-  const { isLoading: writingDuration } = useWaitForTransaction({
-    hash: durationData?.hash,
-  });
-  const { isLoading: addingToPot } = useWaitForTransaction({
-    hash: potData?.hash,
-  });
-  const { isLoading: settingUpkeeper } = useWaitForTransaction({
-    hash: upkeepData?.hash,
-  });
-  const { isLoading: settingPrice } = useWaitForTransaction({
-    hash: priceSetData?.hash,
-  });
-  const { isLoading: endingRound } = useWaitForTransaction({
-    hash: endRoundData?.hash,
-  });
+  const { writeContract, isPending, isError, error } = useWriteContract();
 
   const dateDuration = {
     base: new Date(),
@@ -167,11 +84,19 @@ const OwnerCard = () => {
             <button
               className={classNames(
                 "btn btn-secondary my-2",
-                activating ? "loading loading-spinner" : ""
+                isPending ? "loading loading-spinner" : ""
               )}
               onClick={() => {
-                if (activating) return;
-                activateLottery?.();
+                if (isPending) return;
+                writeContract({
+                  address: lotteryContract,
+                  abi: lotteryAbi,
+                  functionName: "activateLottery",
+                  args: [
+                    BigInt(initPrice || 0) * BigInt(10 ** 18),
+                    BigInt(initEnd / 1000),
+                  ],
+                });
               }}
             >
               Activate
@@ -211,11 +136,16 @@ const OwnerCard = () => {
           <button
             className={classNames(
               "btn btn-secondary my-2",
-              writingDuration ? "loading loading-spinner" : ""
+              isPending ? "loading loading-spinner" : ""
             )}
             onClick={() => {
-              if (writingDuration) return;
-              writeDuration?.();
+              if (isPending) return;
+              writeContract({
+                address: lotteryContract,
+                abi: lotteryAbi,
+                functionName: "setRoundDuration",
+                args: [BigInt(duration || 3600)],
+              });
             }}
           >
             Set Duration
@@ -242,16 +172,25 @@ const OwnerCard = () => {
                 USD:&nbsp;{potAdd * mainInfo.price}
               </span>
             </label>
-            {isError && <div>{(potError as BaseError)?.shortMessage}</div>}
+            {isError && <div>{(error as BaseError)?.shortMessage}</div>}
           </div>
           <button
             className={classNames(
               "btn btn-secondary my-2",
-              addingToPot ? "loading loading-spinner" : ""
+              isPending ? "loading loading-spinner" : ""
             )}
             onClick={() => {
-              if (addingToPot) return;
-              addToPot?.();
+              if (isPending) return;
+              writeContract({
+                address: lotteryContract,
+                abi: lotteryAbi,
+                functionName: "addToPot",
+                args: [
+                  BigInt(potAdd || 0) * BigInt(10 ** 18),
+                  BigInt(mainInfo.currentRound > 0 ? mainInfo.currentRound : 1),
+                  [25n, 25n, 25n],
+                ],
+              });
             }}
           >
             Add To Pot
@@ -290,11 +229,16 @@ const OwnerCard = () => {
           <button
             className={classNames(
               "btn btn-secondary my-2",
-              settingUpkeeper ? "loading loading-spinner" : ""
+              isPending ? "loading loading-spinner" : ""
             )}
             onClick={() => {
-              if (settingUpkeeper) return;
-              setUpkeep?.();
+              if (isPending) return;
+              writeContract({
+                address: lotteryContract,
+                abi: lotteryAbi,
+                functionName: "setUpkeeper",
+                args: [newUpkeeper as `0x{string}`, isUpkeeper],
+              });
             }}
           >
             Set Upkeeper
@@ -328,11 +272,19 @@ const OwnerCard = () => {
           <button
             className={classNames(
               "btn btn-secondary my-2",
-              settingPrice ? "loading loading-spinner" : ""
+              isPending ? "loading loading-spinner" : ""
             )}
             onClick={() => {
-              if (settingPrice) return;
-              setPrice?.();
+              if (isPending) return;
+              writeContract({
+                address: lotteryContract,
+                abi: lotteryAbi,
+                functionName: "setCurrencyPrice",
+                args: [
+                  BigInt(initPrice || 0) * BigInt(10 ** 18),
+                  BigInt(mainInfo.currentRound + 1),
+                ],
+              });
             }}
           >
             Set Price
@@ -343,11 +295,15 @@ const OwnerCard = () => {
           <button
             className={classNames(
               "btn btn-secondary my-2",
-              endingRound ? "loading loading-spinner" : ""
+              isPending ? "loading loading-spinner" : ""
             )}
             onClick={() => {
-              if (endingRound) return;
-              endRound?.();
+              if (isPending) return;
+              writeContract({
+                address: lotteryContract,
+                abi: lotteryAbi,
+                functionName: "endRound",
+              });
             }}
           >
             End Current Round

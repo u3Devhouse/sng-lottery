@@ -16,9 +16,7 @@ import {
   useAccount,
   useContractRead,
   useContractReads,
-  useContractWrite,
-  usePrepareContractWrite,
-  useWaitForTransaction,
+  useWriteContract,
 } from "wagmi";
 import TicketNumber from "./TicketNumber";
 import { GrView } from "react-icons/gr";
@@ -114,28 +112,8 @@ const PastRounds = () => {
     );
   }, [blazeLott.currentRound, setSelectedRound]);
 
-  const { config } = usePrepareContractWrite({
-    address: lotteryContract,
-    abi: lotteryAbi,
-    functionName: "claimTickets",
-    args: [
-      BigInt(selectedRound),
-      userWinners.map((winner) => BigInt(winner.index)),
-      userWinners.map((winner) => winner.matches),
-    ],
-    enabled: userWinners.length > 0,
-  });
+  const { writeContract, isPending, isSuccess } = useWriteContract();
 
-  const { write, data: claimData, isLoading } = useContractWrite(config);
-  const { isLoading: isPending, isSuccess } = useWaitForTransaction({
-    hash: claimData?.hash,
-  });
-
-  useEffect(() => {
-    if (isSuccess) {
-      matchRefetch();
-    }
-  }, [isSuccess, matchRefetch]);
   if (blazeLott.currentRound < 2)
     return (
       <div className="text-gray-500 font-outfit font-bold py-12">
@@ -306,11 +284,28 @@ const PastRounds = () => {
               <button
                 className={classNames(
                   "btn btn-secondary mt-2",
-                  isPending || isLoading
-                    ? "loading loading-spinner text-golden mx-auto"
-                    : ""
+                  isPending ? "loading loading-spinner text-golden mx-auto" : ""
                 )}
-                onClick={() => write?.()}
+                disabled={isPending || userWinners.length == 0}
+                onClick={() =>
+                  writeContract(
+                    {
+                      address: lotteryContract,
+                      abi: lotteryAbi,
+                      functionName: "claimTickets",
+                      args: [
+                        BigInt(selectedRound),
+                        userWinners.map((winner) => BigInt(winner.index)),
+                        userWinners.map((winner) => winner.matches),
+                      ],
+                    },
+                    {
+                      onSuccess: () => {
+                        matchRefetch();
+                      },
+                    }
+                  )
+                }
               >
                 Claim Wins
               </button>
