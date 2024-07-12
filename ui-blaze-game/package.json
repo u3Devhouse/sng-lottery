@@ -9,7 +9,8 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@web3modal/wagmi": "^3.2.0",
+    "@tanstack/react-query": "^5.51.1",
+    "@web3modal/wagmi": "^5.0.6",
     "classnames": "^2.3.2",
     "date-fns": "^2.30.0",
     "immer": "^10.0.2",
@@ -19,8 +20,8 @@
     "react-dom": "^18.2.0",
     "react-icons": "^4.10.1",
     "use-immer": "^0.9.0",
-    "viem": "^1.18.2",
-    "wagmi": "^1.4.5"
+    "viem": "^2.17.3",
+    "wagmi": "^2.10.10"
   },
   "devDependencies": {
     "@types/node": "^17.0.31",

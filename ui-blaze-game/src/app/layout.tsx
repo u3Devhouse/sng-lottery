@@ -1,5 +1,5 @@
 import "../styles/globals.css";
-import { Providers } from "./providers";
+import Web3Provider from "@/components/layout/Web3Provider";
 import Header from "@/components/layout/Header";
 import { Roboto, Outfit } from "next/font/google";
 
@@ -43,10 +43,10 @@ export default function RootLayout({
           <source src="/bg_vid.mp4" type="video/mp4" />
           Your browser does not support the video tag.
         </video>
-        <Providers>
+        <Web3Provider>
           <Header />
           {children}
-        </Providers>
+        </Web3Provider>
       </body>
     </html>
   );
