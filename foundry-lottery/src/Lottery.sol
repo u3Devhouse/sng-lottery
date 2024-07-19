@@ -19,15 +19,9 @@ import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "chainlink/src/v0.8/automation/AutomationCompatible.sol";
 import "chainlink/src/v0.8/vrf/dev/VRFConsumerBaseV2Plus.sol";
 import "chainlink/src/v0.8/vrf/dev/VRFCoordinatorV2_5.sol";
-import {ISNGRouter, IUniswapV2Router02} from "./interfaces/IUniswap.sol";
+import {ISNGRouter, IUniswapRouter02} from "./interfaces/IUniswap.sol";
 import {AggregatorV3Interface} from "chainlink/src/v0.8/shared/interfaces/AggregatorV3Interface.sol";
 
-// @todo 4. Single price in USD
-//          a. get BNB price ($575)
-//          b. get BNB amount in ticket price (ticket = 2$ ~ BNB = 0.0035 BNB)
-//          c. total BNB amoun to receive: tickets * 0.0035 BNB
-//          d. getAmountsIn router to get tokens to receive from user to sell.
-//  *. update j reset on line 631 ✅
 // @todo add markup for tokens with transfer fees
 
 //-------------------------------------------------------------------------
@@ -61,7 +55,7 @@ contract SNGLottery is
     //    TYPE DECLARATIONS
     //-------------------------------------------------------------------------
     struct RoundInfo {
-        uint256[5] distribution; // This is the total pot distributed to each item - NOT the percentages
+        uint256[3] distribution; // This is the total pot distributed to each item - NOT the percentages
         uint256 pot;
         uint256 ticketsBought;
         uint256 price;
@@ -113,21 +107,19 @@ contract SNGLottery is
     address private immutable WETH;
     address public constant DEAD_WALLET =
         0x000000000000000000000000000000000000dEaD;
-    address public burnWallet;
-    AggregatorV3Interface private priceFeed =
-        AggregatorV3Interface(0x0567F2323251f0Aab15c8dFb1967E4e8A7D42aeE);
+    AggregatorV3Interface private immutable priceFeed;
     //-------------------------------------------------------------------------
     //    VRF Config Variables
     //-------------------------------------------------------------------------
     address public immutable vrfCoordinator;
     bytes32 public immutable keyHash;
-    uint64 private immutable subscriptionId;
+    uint256 private immutable subscriptionId;
     uint16 private constant minimumRequestConfirmations = 4;
     uint32 private callbackGasLimit = 100000;
 
-    address public teamWallet;
+    address payable public teamWallet;
     ISNGRouter public sngRouter;
-    IUniswapV2Router02 public pcsRouter;
+    IUniswapRouter02 public pcsRouter;
     IERC20 public currency;
     uint256 public currentRound;
     uint256 public roundDuration;
@@ -182,11 +174,9 @@ contract SNGLottery is
         address _tokenAccepted,
         address _vrfCoordinator,
         bytes32 _keyHash,
-        uint64 _subscriptionId,
-        address _team,
-        address _burnWallet
+        uint256 _subscriptionId,
+        address _team
     ) VRFConsumerBaseV2Plus(_vrfCoordinator) {
-        burnWallet = _burnWallet;
         // _tokenAccepted is BLZ token
         currency = IERC20(_tokenAccepted);
 
@@ -194,14 +184,25 @@ contract SNGLottery is
         vrfCoordinator = _vrfCoordinator;
         keyHash = _keyHash;
         subscriptionId = _subscriptionId;
+        address tempWETH;
+        address tempFeed;
+
         if (block.chainid == 56) {
             sngRouter = ISNGRouter(0x19702801AC5319825286E8eE10B3bFE62B904Ba0);
+            pcsRouter = IUniswapRouter02(sngRouter.router());
+            tempWETH = sngRouter.weth();
+            tempFeed = 0x0567F2323251f0Aab15c8dFb1967E4e8A7D42aeE;
+        } else if (block.chainid == 97) {
+            sngRouter = ISNGRouter(0xD99D1c33F9fC3444f8101754aBC46c52416550D1);
+            pcsRouter = IUniswapRouter02(sngRouter);
+            tempWETH = pcsRouter.WETH();
+            tempFeed = 0x1605C8A4937b2f84ef7967017a8633a135a62513;
         } else revert SNGLot__InvalidChainId();
 
-        WETH = sngRouter.weth();
-        pcsRouter = IUniswapV2Router02(sngRouter.router());
+        priceFeed = AggregatorV3Interface(tempFeed);
+        WETH = tempWETH;
         distributionPercentages = [25, 25, 25];
-        teamWallet = _team;
+        teamWallet = payable(_team);
         teamFee = 25;
     }
 
@@ -248,7 +249,9 @@ contract SNGLottery is
             sngRouter.swapExactETHForTokensSupportingFeeOnTransferTokens{
                 value: totalPrice
             }(0, path, address(this), block.timestamp);
-
+            _sendToTeamWallet(bnbForTeam);
+            bnbForTeam = 0; // resets
+            transferBNB(msg.sender, address(this).balance);
             toBuy = currency.balanceOf(address(this)) - toBuy;
         } else if (token == address(currency)) {
             // how many tokens to get from client
@@ -320,7 +323,7 @@ contract SNGLottery is
         _sendToTeamWallet(bnbForTeam);
         _addToPot(toBuy, currentRound, dist);
         // Buy Tickets
-        _buyTickets(tickets, 0, msg.sender);
+        _buyTickets(tickets, msg.sender);
     }
 
     /**
@@ -553,10 +556,10 @@ contract SNGLottery is
             customDistribution[1] = distributionPercentages[1];
             customDistribution[2] = distributionPercentages[2];
         } else {
+            totalPercentage = 0;
             for (uint i = 0; i < 3; i++) {
                 totalPercentage += customDistribution[i];
             }
-            totalPercentage -= PERCENTAGE_BASE;
         }
         RoundInfo storage playingRound = roundInfo[round];
         for (uint i = 0; i < 3; i++) {
@@ -651,11 +654,7 @@ contract SNGLottery is
     //    PRIVATE FUNCTIONS
     //-------------------------------------------------------------------------
 
-    function _buyTickets(
-        uint64[] calldata tickets,
-        uint256 potAmount,
-        address _user
-    ) private {
+    function _buyTickets(uint64[] calldata tickets, address _user) private {
         RoundInfo storage playingRound = roundInfo[currentRound];
         if (!playingRound.active || block.timestamp > playingRound.endRound)
             revert SNGLot__RoundInactive(currentRound);
@@ -664,9 +663,6 @@ contract SNGLottery is
         if (ticketAmount == 0) {
             revert SNGLot__InsufficientTickets();
         }
-
-        uint[] memory dist = new uint[](1);
-        if (potAmount > 0) _addToPot(potAmount, currentRound, dist);
 
         playingRound.ticketsBought += ticketAmount;
         // Save Ticket to current Round
@@ -704,15 +700,7 @@ contract SNGLottery is
             nextPot += playingRound.distribution[2];
             nextRound.distribution[2] = playingRound.distribution[2];
         }
-        // BURN the Currency Amount
-        uint burnAmount = playingRound.distribution[3];
         // Send the appropriate percent to the team wallet
-        uint teamPot = playingRound.distribution[4];
-        if (burnAmount > 0) currency.transfer(burnWallet, burnAmount);
-        if (teamPot > 0) {
-            bool succ = currency.transfer(teamWallet, teamPot);
-            if (!succ) revert SNGLot__TransferFailed();
-        }
         nextRound.pot += nextPot;
         emit RolloverPot(round, nextPot);
     }
@@ -725,6 +713,12 @@ contract SNGLottery is
             roundDuration;
         if (roundInfo[currentRound].price == 0)
             roundInfo[currentRound].price = playingRound.price;
+    }
+
+    function transferBNB(address to, uint amount) private {
+        if (amount == 0) return;
+        (bool succ, ) = payable(to).call{value: amount}("");
+        if (!succ) revert SNGLot__ETHTransferFailed();
     }
 
     function getTotalMatches(
@@ -783,6 +777,7 @@ contract SNGLottery is
     }
 
     function _sendToTeamWallet(uint256 amount) private {
+        if (amount == 0) return;
         (bool succ, ) = teamWallet.call{value: amount}("");
         if (!succ) revert SNGLot__ETHTransferFailed();
     }
@@ -932,8 +927,9 @@ contract SNGLottery is
     function roundDistribution(
         uint round
     ) external view returns (uint[] memory) {
-        uint[] memory distribution = new uint[](5);
-        for (uint i = 0; i < 5; i++) {
+        uint distLen = roundInfo[round].distribution.length;
+        uint[] memory distribution = new uint[](distLen);
+        for (uint i = 0; i < distLen; i++) {
             distribution[i] = roundInfo[round].distribution[i];
         }
         return distribution;

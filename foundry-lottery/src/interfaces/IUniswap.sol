@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-interface IUniswapV2Factory {
+interface IUniswapFactory {
     event PairCreated(
         address indexed token0,
         address indexed token1,
@@ -32,7 +32,7 @@ interface IUniswapV2Factory {
     function setFeeToSetter(address) external;
 }
 
-interface IUniswapV2Pair {
+interface IUniswapPair {
     event Approval(
         address indexed owner,
         address indexed spender,
@@ -285,7 +285,7 @@ interface IUniswapV2Router01 {
     ) external view returns (uint256[] memory amounts);
 }
 
-interface IUniswapV2Router02 is IUniswapV2Router01 {
+interface IUniswapRouter02 is IUniswapV2Router01 {
     function removeLiquidityETHSupportingFeeOnTransferTokens(
         address token,
         uint256 liquidity,
@@ -332,7 +332,7 @@ interface IUniswapV2Router02 is IUniswapV2Router01 {
     ) external;
 }
 
-interface ISNGRouter is IUniswapV2Router02 {
+interface ISNGRouter is IUniswapRouter02 {
     function weth() external view returns (address);
 
     function router() external view returns (address);
