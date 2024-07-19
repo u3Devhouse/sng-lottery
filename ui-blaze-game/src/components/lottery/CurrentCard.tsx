@@ -82,7 +82,6 @@ const Card = () => {
     functionName: "getBNBPricePerTicket",
     args: [roundInfo?.[0]?.result?.[2] || 0n],
   });
-  console.log({ currentRound, roundInfo });
 
   const roundIsActive = (roundInfo?.[0]?.result as any)?.[5] || false;
 
