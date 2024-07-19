@@ -279,7 +279,7 @@ const OwnerCard = () => {
               writeContract({
                 address: lotteryContract,
                 abi: lotteryAbi,
-                functionName: "setCurrencyPrice",
+                functionName: "setUSDPrice",
                 args: [
                   BigInt(initPrice || 0) * BigInt(10 ** 18),
                   BigInt(mainInfo.currentRound + 1),

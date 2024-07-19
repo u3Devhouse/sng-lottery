@@ -36,21 +36,6 @@ import { useImmer } from "use-immer";
 import { BiSolidEdit } from "react-icons/bi";
 import classNames from "classnames";
 import TicketNumber from "./TicketNumber";
-import useAcceptedTokens, {
-  AcceptedTokens,
-  acceptedTokens,
-  tokenList,
-} from "@/hooks/useAcceptedTokens";
-
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectLabel,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -104,41 +89,43 @@ const BuyTicketsModal = ({ tokenData }: { tokenData: Array<TokenData> }) => {
   );
   const selectedData = tokenData.find((token) => token.contract === tokenToUse);
 
-  const { data: selectedTokenData } = useReadContracts({
-    contracts: [
-      {
-        address: tokenToUse,
-        abi: erc20Abi,
-        functionName: "balanceOf",
-        args: [address || zeroAddress],
+  const { data: selectedTokenData, refetch: balanceRefetch } = useReadContracts(
+    {
+      contracts: [
+        {
+          address: tokenToUse,
+          abi: erc20Abi,
+          functionName: "balanceOf",
+          args: [address || zeroAddress],
+        },
+        {
+          address: tokenToUse,
+          abi: erc20Abi,
+          functionName: "allowance",
+          args: [address || zeroAddress, lotteryContract],
+        },
+        {
+          address: tokenToUse,
+          abi: erc20Abi,
+          functionName: "decimals",
+        },
+        {
+          address: tokenToUse,
+          abi: erc20Abi,
+          functionName: "symbol",
+        },
+        {
+          address: uniRouter,
+          abi: uniRouterAbi,
+          functionName: "getAmountsOut",
+          args: [1000000000000000000n, [tokenToUse, zeroAddress]],
+        },
+      ],
+      query: {
+        enabled: tokenToUse !== zeroAddress || !selectedData,
       },
-      {
-        address: tokenToUse,
-        abi: erc20Abi,
-        functionName: "allowance",
-        args: [address || zeroAddress, lotteryContract],
-      },
-      {
-        address: tokenToUse,
-        abi: erc20Abi,
-        functionName: "decimals",
-      },
-      {
-        address: tokenToUse,
-        abi: erc20Abi,
-        functionName: "symbol",
-      },
-      {
-        address: uniRouter,
-        abi: uniRouterAbi,
-        functionName: "getAmountsOut",
-        args: [1000000000000000000n, [tokenToUse, zeroAddress]],
-      },
-    ],
-    query: {
-      enabled: tokenToUse !== zeroAddress || !selectedData,
-    },
-  });
+    }
+  );
 
   const tokenSymbol = selectedData?.symbol || selectedTokenData?.[3].result;
   const tokenTicketPrice =
@@ -357,9 +344,7 @@ const BuyTicketsModal = ({ tokenData }: { tokenData: Array<TokenData> }) => {
               </tbody>
             </table>
             <div className="flex flex-row items-center justify-center gap-x-4 p-4">
-              {(selectedTokenData?.[1]?.result || 0n) >=
-              BigInt(ticketAmount) *
-                (selectedTokenData?.[3]?.result?.[0] || 0n) ? (
+              {tokensInWallet >= ticketAmount * priceInToken ? (
                 <>
                   <button
                     className="btn btn-secondary btn-sm min-w-[126px]"
@@ -407,8 +392,7 @@ const BuyTicketsModal = ({ tokenData }: { tokenData: Array<TokenData> }) => {
                   onClick={() =>
                     writeContract(
                       {
-                        address: acceptedTokens[tokenToUse]
-                          .address as `0x${string}`, //selected Token,
+                        address: tokenToUse,
                         abi: erc20Abi,
                         functionName: "approve",
                         args: [lotteryContract, maxUint256],
@@ -447,11 +431,14 @@ const BuyTicketsModal = ({ tokenData }: { tokenData: Array<TokenData> }) => {
                   writeContract({
                     address: lotteryContract,
                     abi: lotteryAbi,
-                    functionName: "buyTicketsWithAltTokens",
-                    args: [
-                      ticketsInHex,
-                      acceptedTokens[tokenToUse].address as `0x${string}`,
-                    ],
+                    functionName: "buyTickets",
+                    args: [ticketsInHex, tokenToUse],
+                    value:
+                      tokenToUse === zeroAddress
+                        ? parseEther(
+                            (ticketAmount * priceInToken * 1.1).toString()
+                          )
+                        : undefined,
                   });
                 }}
               >
