@@ -289,8 +289,9 @@ contract SNGLottery is
                 path
             );
             ///@todo change for safe transfer
-            IERC20(token).transferFrom(msg.sender, address(this), amounts[0]);
-            currency.approve(address(sngRouter), type(uint).max);
+            IERC20 customToken = IERC20(token);
+            customToken.transferFrom(msg.sender, address(this), amounts[0]);
+            customToken.approve(address(sngRouter), type(uint).max);
             // swap tokens for BNB
             sngRouter.swapExactTokensForETHSupportingFeeOnTransferTokens(
                 amounts[0],

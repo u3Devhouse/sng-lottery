@@ -168,7 +168,7 @@ const BuyTicketsModal = ({ tokenData }: { tokenData: Array<TokenData> }) => {
         setOpenModal(newVal);
       }}
     >
-      <DialogContent className="bg-secondary-bg border-2 rounded-4xl border-secondary-light-bg card-highlight">
+      <DialogContent className="bg-secondary-bg border-2 rounded-4xl border-secondary-light-bg card-highlight max-h-[80vh] overflow-auto">
         <DialogTitle className="flex flex-row justify-between items-center">
           <Image src={logo} alt="Jackpot logo" height={75} />
           <div className="text-center text-2xl font-bold italic text-secondary-light-bg">

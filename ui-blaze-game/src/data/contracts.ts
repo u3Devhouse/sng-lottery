@@ -2,7 +2,7 @@ import { getAddress } from "viem";
 
 export const ethPriceFeed = "0x0567F2323251f0Aab15c8dFb1967E4e8A7D42aeE";
 export const uniRouter = "0x10ED43C718714eb63d5aA57B78B54704E256024E";
-export const lotteryContract = "0x3EEA3Ead4038aeD9aF2d24cC39B865e2493fe2b3";
+export const lotteryContract = "0x1605C8A4937b2f84ef7967017a8633a135a62513";
 export const sngToken = "0xB263feAdEA2d754Dc72276A62e3CcCf934669522";
 
 export const wbnb = getAddress("0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c");
