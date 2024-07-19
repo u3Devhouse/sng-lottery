@@ -6,7 +6,7 @@ import Image from "next/image";
 import logo from "@/../public/assets/SNG Jackpot 1.svg";
 import loadingGif from "@/../public/assets/loading_flame.gif";
 //  Contracts
-import { erc20Abi } from "viem";
+import { erc20Abi, getAddress } from "viem";
 import {
   useAccount,
   useBalance,
@@ -20,6 +20,7 @@ import {
   uniswapV2PairAbi,
   uniRouter,
   uniRouterAbi,
+  wbnb,
 } from "@/data/contracts";
 import {
   BaseError,
@@ -87,7 +88,9 @@ const BuyTicketsModal = ({ tokenData }: { tokenData: Array<TokenData> }) => {
           .join("")
     )
   );
-  const selectedData = tokenData.find((token) => token.contract === tokenToUse);
+  const selectedData = tokenData.find(
+    (token) => token.contract.toLowerCase() === tokenToUse.toLowerCase()
+  );
 
   const { data: selectedTokenData, refetch: balanceRefetch } = useReadContracts(
     {
@@ -118,7 +121,7 @@ const BuyTicketsModal = ({ tokenData }: { tokenData: Array<TokenData> }) => {
           address: uniRouter,
           abi: uniRouterAbi,
           functionName: "getAmountsOut",
-          args: [1000000000000000000n, [tokenToUse, zeroAddress]],
+          args: [1000000000000000000n, [tokenToUse, wbnb]],
         },
       ],
       query: {
@@ -126,23 +129,21 @@ const BuyTicketsModal = ({ tokenData }: { tokenData: Array<TokenData> }) => {
       },
     }
   );
-
+  const isNative = tokenToUse === wbnb || tokenToUse === zeroAddress;
   const tokenSymbol = selectedData?.symbol || selectedTokenData?.[3].result;
-  const tokenTicketPrice =
-    tokenToUse === zeroAddress
-      ? roundInfo.ticketPriceBNB
-      : selectedTokenData?.[4].result?.[1];
+  const tokenTicketPrice = isNative
+    ? roundInfo.ticketPriceBNB
+    : selectedTokenData?.[4].result?.[1];
   const tokensInWallet =
     tokenToUse === zeroAddress
       ? parseInt((ethBalance?.value || 0n)?.toString()) / 1e18
       : parseInt((selectedTokenData?.[0].result || 0n)?.toString()) /
         10 ** parseInt((selectedTokenData?.[3].result?.[0] || 0n)?.toString());
-  const tokenDecimals =
-    tokenToUse === zeroAddress
-      ? 18
-      : selectedData
-      ? selectedData.decimal
-      : selectedTokenData?.[2].result || 18;
+  const tokenDecimals = isNative
+    ? 18
+    : selectedData
+    ? selectedData.decimal
+    : selectedTokenData?.[2].result || 18;
   const priceInToken =
     parseFloat((tokenTicketPrice || 0n)?.toString()) / 10 ** tokenDecimals;
   // --------------------
@@ -229,6 +230,15 @@ const BuyTicketsModal = ({ tokenData }: { tokenData: Array<TokenData> }) => {
   //     BigInt(ticketAmount) * (selectedTokenData?.[3]?.result?.[0] || 0n),
   // });
 
+  const requiresApproval =
+    tokenToUse !== zeroAddress &&
+    (selectedTokenData?.[1]?.result || 0n) < ticketAmount * priceInToken;
+
+  const sufficientFunds =
+    tokenToUse === zeroAddress
+      ? tokensInWallet >= ticketAmount * priceInToken
+      : (selectedTokenData?.[1]?.result || 0n) >= ticketAmount * priceInToken;
+
   return (
     <Dialog
       open={openModal}
@@ -262,15 +272,22 @@ const BuyTicketsModal = ({ tokenData }: { tokenData: Array<TokenData> }) => {
                       placeholder="Select a Token"
                       options={
                         tokenData?.map((token) => ({
-                          value: token.contract,
+                          value: `${token.contract.toLocaleLowerCase()}::${token.symbol.toLocaleLowerCase()}::${token.name.toLocaleLowerCase()}`,
                           label: token.symbol,
                           imageUrl: token.image,
                         })) || []
                       }
-                      value={tokenToUse}
-                      onChange={(value) =>
-                        setTokenToUse(value as `0x${string}`)
-                      }
+                      value={`${selectedData?.contract.toLocaleLowerCase()}::${selectedData?.symbol.toLocaleLowerCase()}::${selectedData?.name.toLocaleLowerCase()}`}
+                      onChange={(value) => {
+                        console.log(
+                          "onchange value: ",
+                          value,
+                          getAddress(value.split("::")[0] as `0x${string}`)
+                        );
+                        setTokenToUse(
+                          getAddress(value.split("::")[0] as `0x${string}`)
+                        );
+                      }}
                     />
                   </td>
                 </tr>
@@ -308,7 +325,7 @@ const BuyTicketsModal = ({ tokenData }: { tokenData: Array<TokenData> }) => {
 
             <input
               type="number"
-              className="input input-bordered input-secondary w-full"
+              className="input input-bordered input-primary w-full"
               onFocus={(e) => e.target.select()}
               value={ticketAmount}
               onChange={(e) => {
@@ -343,12 +360,12 @@ const BuyTicketsModal = ({ tokenData }: { tokenData: Array<TokenData> }) => {
                 </tr>
               </tbody>
             </table>
-            <div className="flex flex-row items-center justify-center gap-x-4 p-4">
-              {tokensInWallet >= ticketAmount * priceInToken ? (
+            <div className="flex flex-row items-center justify-center gap-x-4 p-4 flex-wrap">
+              {!requiresApproval ? (
                 <>
                   <button
-                    className="btn btn-secondary btn-sm min-w-[126px]"
-                    disabled={ticketAmount < 1}
+                    className="btn btn-primary btn-sm rounded-full font-light min-w-[126px]"
+                    disabled={ticketAmount < 1 || !sufficientFunds}
                     onClick={() => {
                       setView(1);
                       setAllTickets(
@@ -359,8 +376,8 @@ const BuyTicketsModal = ({ tokenData }: { tokenData: Array<TokenData> }) => {
                     Pick Numbers
                   </button>
                   <button
-                    className="btn btn-secondary btn-sm min-w-[126px]"
-                    disabled={ticketAmount < 1}
+                    className="btn btn-primary rounded-full font-light btn-sm min-w-[126px]"
+                    disabled={ticketAmount < 1 || !sufficientFunds}
                     onClick={() => {
                       setView(1);
                       const newTickets = new Array(ticketAmount)
@@ -382,11 +399,16 @@ const BuyTicketsModal = ({ tokenData }: { tokenData: Array<TokenData> }) => {
                   >
                     Lucky Dip
                   </button>
+                  {!sufficientFunds && (
+                    <div className="text-red-500 w-full text-center text-sm pt-3">
+                      Insufficient funds
+                    </div>
+                  )}
                 </>
               ) : (
                 <button
                   className={classNames(
-                    "btn btn-secondary btn-sm min-w-[126px]",
+                    "btn btn-primary rounded-full font-light btn-sm min-w-[126px]",
                     isPending && "loading btn-disabled loading-spinner"
                   )}
                   onClick={() =>
@@ -424,7 +446,7 @@ const BuyTicketsModal = ({ tokenData }: { tokenData: Array<TokenData> }) => {
           <>
             <div className="flex flex-row items-center justify-center">
               <button
-                className="btn btn-secondary"
+                className="btn btn-primary rounded-full"
                 onClick={() => {
                   // @todo ADD VALUE WHEN BUYING WITH NATIVE
                   setView(3);
@@ -445,14 +467,14 @@ const BuyTicketsModal = ({ tokenData }: { tokenData: Array<TokenData> }) => {
                 Buy Now
               </button>
             </div>
-            <div className="flex flex-col gap-y-4 py-4">
+            <div className="flex flex-col gap-y-4 py-4 max-h-[60vh] overflow-auto">
               {allTickets.map((ticket, i) => {
                 return (
                   <div key={`ticket-id-to-buy-${i}`}>
-                    <div className="text-sm text-golden pb-2 flex flex-row justify-between items-center">
+                    <div className="text-sm text-primary pb-2 flex flex-row justify-between items-center">
                       <div>Ticket #{i + 1}</div>
                       <button
-                        className="btn btn-circle btn-secondary bg-transparent text-golden btn-sm"
+                        className="btn btn-circle btn-secondary bg-transparent text-primary btn-sm"
                         onClick={() => {
                           setSelectedTicket(i);
                           setSelectedNumbers(ticket);
@@ -481,7 +503,7 @@ const BuyTicketsModal = ({ tokenData }: { tokenData: Array<TokenData> }) => {
         {view == 2 && (
           <>
             <div>
-              <div className="border-2 border-golden flex flex-row items-center justify-center rounded-3xl my-4">
+              <div className="border-2 border-primary flex flex-row items-center justify-center rounded-3xl my-4 bg-dark-red">
                 {selectedNumbers.map((num, i) => {
                   return (
                     <button
@@ -491,7 +513,7 @@ const BuyTicketsModal = ({ tokenData }: { tokenData: Array<TokenData> }) => {
                         if (selectedIndex !== i) setSelectedIndex(i);
                       }}
                     >
-                      <TicketNumber number={num} />
+                      <TicketNumber number={num} variation="secondary" />
                       {selectedIndex == i && (
                         <div className="absolute border-r-8 border-l-8 border-b-8 md:border-b-[16px] border-t-0 border-transparent border-b-red-500 w-0 h-0 ml-2 md:ml-4" />
                       )}
@@ -521,7 +543,12 @@ const BuyTicketsModal = ({ tokenData }: { tokenData: Array<TokenData> }) => {
                           setSelectedIndex((i) => (i + 1) % 5);
                         }}
                       >
-                        <TicketNumber number={i} />
+                        <TicketNumber
+                          number={i}
+                          variation={
+                            selectedNumbers.includes(i) ? "selected" : "default"
+                          }
+                        />
                       </button>
                     </div>
                   );

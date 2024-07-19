@@ -7,7 +7,7 @@ module.exports = {
         'mytheme':{
           'primary': "#E30613",
           'accent': "#F94F59",
-          'secondary': "#E0B654" 
+          'secondary': "#FFE5B6" 
         }
       }
     ]
@@ -25,6 +25,9 @@ module.exports = {
         'golden': "#E0B654",
         'golden-dark': "#D2A64C",
         'sng-red': "#E30613",
+        'number-bg' : "#2A467E",
+        'number-bg-secondary': "#C30712",
+        'dark-red': "#5B050A"
       },
       fontFamily:{
         'outfit': ['var(--font-outfit)'],

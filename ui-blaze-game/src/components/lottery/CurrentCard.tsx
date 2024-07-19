@@ -13,7 +13,7 @@ import {
   priceFeedAbi,
   sngToken,
   sngAbi,
-  testPriceFeed,
+  ethPriceFeed,
 } from "@/data/contracts";
 // Images
 import flyingTokens from "@/../public/assets/flying_tokens.png";
@@ -64,7 +64,7 @@ const Card = () => {
         functionName: "getReserves",
       },
       {
-        address: testPriceFeed,
+        address: ethPriceFeed,
         abi: priceFeedAbi,
         functionName: "latestRoundData",
       },
@@ -183,7 +183,7 @@ const Card = () => {
             <div className="py-4">
               <button
                 className={classNames(
-                  "btn btn-accent btn-sm text-white",
+                  "btn btn-primary rounded-full font-light btn-sm",
                   roundIsActive ? "" : "loading loading-spinner"
                 )}
                 onClick={() => {

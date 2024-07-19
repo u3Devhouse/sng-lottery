@@ -1,9 +1,11 @@
-export const ethPriceFeed = "0x5f4ec3df9cbd43714fe2740f5e3616155c5b8419";
-export const uniRouter = "0xD99D1c33F9fC3444f8101754aBC46c52416550D1";
-export const lotteryContract = "0xfF500480aea2e19Ed26fE851f5F4b198558ea7Cb";
-export const sngToken = "0x73749b142a7870e2772a7807AeC32feB448290Ea";
+import { getAddress } from "viem";
 
-export const testPriceFeed = "0x1605C8A4937b2f84ef7967017a8633a135a62513";
+export const ethPriceFeed = "0x5f4ec3df9cbd43714fe2740f5e3616155c5b8419";
+export const uniRouter = "0x10ED43C718714eb63d5aA57B78B54704E256024E";
+export const lotteryContract = "0x3EEA3Ead4038aeD9aF2d24cC39B865e2493fe2b3";
+export const sngToken = "0xB263feAdEA2d754Dc72276A62e3CcCf934669522";
+
+export const wbnb = getAddress("0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c");
 
 export const lotteryAbi = [
   {

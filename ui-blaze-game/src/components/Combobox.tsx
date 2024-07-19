@@ -53,8 +53,10 @@ export function Combobox(props: ComboboxType) {
   const { placeholder, value, onChange, options } = props;
   const [open, setOpen] = useState(false);
 
+  const selectedToken = options.find((option) => option.value === value);
+  console.log({ selectedToken, value });
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover open={open} onOpenChange={setOpen} modal={true}>
       <PopoverTrigger asChild>
         <Button
           variant="outline"
@@ -62,9 +64,18 @@ export function Combobox(props: ComboboxType) {
           aria-expanded={open}
           className="w-[200px] justify-between"
         >
-          {value
-            ? options.find((option) => option.value === value)?.label
-            : placeholder}
+          {value ? (
+            <>
+              <img
+                src={selectedToken?.imageUrl}
+                alt={selectedToken?.label}
+                className="h-6 w-6 rounded-full overflow-hidden"
+              />
+              {selectedToken?.label}
+            </>
+          ) : (
+            placeholder
+          )}
           <GoChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
@@ -74,11 +85,12 @@ export function Combobox(props: ComboboxType) {
           <CommandEmpty>No token found.</CommandEmpty>
           <CommandGroup>
             <CommandList>
-              {options.map((framework) => (
+              {options.map((option) => (
                 <CommandItem
-                  key={framework.value}
-                  value={framework.value}
+                  key={option.value}
+                  value={option.value}
                   onSelect={(currentValue) => {
+                    console.log({ currentValue, value });
                     onChange(currentValue === value ? "" : currentValue);
                     setOpen(false);
                   }}
@@ -86,10 +98,15 @@ export function Combobox(props: ComboboxType) {
                   <MdCheck
                     className={cn(
                       "mr-2 h-4 w-4",
-                      value === framework.value ? "opacity-100" : "opacity-0"
+                      value === option.value ? "opacity-100" : "opacity-0"
                     )}
                   />
-                  {framework.label}
+                  <img
+                    src={option.imageUrl}
+                    alt={option.label}
+                    className="h-6 w-6 rounded-full overflow-hidden mr-2"
+                  />
+                  {option.label}
                 </CommandItem>
               ))}
             </CommandList>
