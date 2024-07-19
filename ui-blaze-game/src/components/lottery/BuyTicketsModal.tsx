@@ -118,8 +118,8 @@ const BuyTicketsModal = ({ tokenData }: { tokenData: Array<TokenData> }) => {
         {
           address: uniRouter,
           abi: uniRouterAbi,
-          functionName: "getAmountsOut",
-          args: [1000000000000000000n, [tokenToUse, wbnb]],
+          functionName: "getAmountsIn",
+          args: [roundInfo.ticketPriceBNB, [tokenToUse, wbnb]],
         },
       ],
       query: {
@@ -131,12 +131,12 @@ const BuyTicketsModal = ({ tokenData }: { tokenData: Array<TokenData> }) => {
   const tokenSymbol = selectedData?.symbol || selectedTokenData?.[3].result;
   const tokenTicketPrice = isNative
     ? roundInfo.ticketPriceBNB
-    : selectedTokenData?.[4].result?.[1];
+    : selectedTokenData?.[4].result?.[0];
   const tokensInWallet =
     tokenToUse === zeroAddress
       ? parseInt((ethBalance?.value || 0n)?.toString()) / 1e18
       : parseInt((selectedTokenData?.[0].result || 0n)?.toString()) /
-        10 ** parseInt((selectedTokenData?.[3].result?.[0] || 0n)?.toString());
+        10 ** parseInt((selectedTokenData?.[2].result || 0n)?.toString());
   const tokenDecimals = isNative
     ? 18
     : selectedData
@@ -144,89 +144,12 @@ const BuyTicketsModal = ({ tokenData }: { tokenData: Array<TokenData> }) => {
     : selectedTokenData?.[2].result || 18;
   const priceInToken =
     parseFloat((tokenTicketPrice || 0n)?.toString()) / 10 ** tokenDecimals;
+
   // --------------------
   // Approve Blaze in lottery
   // --------------------
   const { writeContract, data, isPending, isError, error, isSuccess } =
     useWriteContract();
-
-  // const { config: approveConfig, error: approveConfigErr } =
-  //   usePrepareContractWrite({
-  //     address: acceptedTokens[tokenToUse].address as `0x${string}`, //selected Token,
-  //     abi: erc20Abi,
-  //     functionName: "approve",
-  //     args: [lotteryContract, maxUint256],
-  //     enabled: tokenToUse !== "eth",
-  //   });
-
-  // console.log(approveConfigErr);
-  // const { write: approveWrite, data: approveTxData } =
-  //   useContractWrite(approveConfig);
-  // // const { write: approveUSDTWrite, data: approveUSDTTxData } =
-  // //   useContractWrite(approveUSDTConfig);
-
-  // const { isLoading: approvePendingTx, isSuccess: approveSuccess } =
-  //   useWaitForTransaction({ hash: approveTxData?.hash });
-  // // const { isLoading: approveUSDTPendingTx, isSuccess: approveUSDTSuccess } =
-  // //   useWaitForTransaction({ hash: approveUSDTTxData?.hash });
-
-  // useEffect(() => {
-  //   if (approveSuccess) {
-  //     const interval = setInterval(balanceRefetch, 15000);
-  //     return () => clearInterval(interval);
-  //   }
-  // }, [approveSuccess, balanceRefetch]);
-  // --------------------
-  // BUY TICKETS
-  // --------------------
-  // const {
-  //   config,
-  //   error: prepErr,
-  //   data: prepData,
-  // } = usePrepareContractWrite({
-  //   address: lotteryContract,
-  //   abi: lotteryAbi,
-  //   functionName: "buyTickets",
-  //   args: [ticketsInHex],
-  //   enabled: tokenToUse === "blze",
-  // });
-
-  // const { config: buyWithAltConfig } = usePrepareContractWrite({
-  //   address: lotteryContract,
-  //   abi: lotteryAbi,
-  //   functionName: "buyTicketsWithAltTokens",
-  //   args: [ticketsInHex, acceptedTokens[tokenToUse].address as `0x${string}`],
-  //   chainId: 1,
-  //   value:
-  //     tokenToUse === "eth"
-  //       ? BigInt(ticketAmount) * (selectedTokenData?.[3]?.result?.[0] || 0n)
-  //       : 0n,
-  //   enabled: tokenToUse !== "blze",
-  // });
-
-  // const { write, error, isError } = useContractWrite(config);
-  // const {
-  //   write: buyWithAlt,
-  //   data: altData,
-  //   error: altError,
-  //   isError: isBuyWithAltError,
-  // } = useContractWrite(buyWithAltConfig);
-  // const { isSuccess } = useWaitForTransaction({
-  //   hash: data?.hash,
-  // });
-  // const { isSuccess: isBuyWithAltSuccess } = useWaitForTransaction({
-  //   hash: altData?.hash,
-  // });
-
-  // console.log(selectedTokenData);
-  // console.log({
-  //   isApproved:
-  //     (selectedTokenData?.[1]?.result || 0n) >=
-  //     BigInt(ticketAmount) * (selectedTokenData?.[3]?.result?.[0] || 0n),
-  //   allowance: selectedTokenData?.[1]?.result || 0n,
-  //   priceAmount:
-  //     BigInt(ticketAmount) * (selectedTokenData?.[3]?.result?.[0] || 0n),
-  // });
 
   const requiresApproval =
     tokenToUse !== zeroAddress &&
@@ -406,9 +329,9 @@ const BuyTicketsModal = ({ tokenData }: { tokenData: Array<TokenData> }) => {
               ) : (
                 <button
                   className={classNames(
-                    "btn btn-primary rounded-full font-light btn-sm min-w-[126px]",
-                    isPending && "loading btn-disabled loading-spinner"
+                    "btn btn-primary rounded-full font-light btn-sm min-w-[126px]"
                   )}
+                  disabled={isPending}
                   onClick={() =>
                     writeContract(
                       {
@@ -425,7 +348,11 @@ const BuyTicketsModal = ({ tokenData }: { tokenData: Array<TokenData> }) => {
                     )
                   }
                 >
-                  Approve Game
+                  {isPending ? (
+                    <span className="loading loading-spinner"></span>
+                  ) : (
+                    "Approve Game"
+                  )}
                 </button>
               )}
             </div>
@@ -573,7 +500,7 @@ const BuyTicketsModal = ({ tokenData }: { tokenData: Array<TokenData> }) => {
             <div>
               <a
                 className="text-golden underline"
-                href={`https://etherscan.io/tx/${data || ""}`}
+                href={`https://bscscan.com/tx/${data || ""}`}
               >
                 <strong>Tx:</strong>{" "}
                 {data

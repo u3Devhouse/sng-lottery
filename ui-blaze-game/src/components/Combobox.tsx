@@ -54,7 +54,6 @@ export function Combobox(props: ComboboxType) {
   const [open, setOpen] = useState(false);
 
   const selectedToken = options.find((option) => option.value === value);
-  console.log({ selectedToken, value });
   return (
     <Popover open={open} onOpenChange={setOpen} modal={true}>
       <PopoverTrigger asChild>
@@ -90,7 +89,6 @@ export function Combobox(props: ComboboxType) {
                   key={option.value}
                   value={option.value}
                   onSelect={(currentValue) => {
-                    console.log({ currentValue, value });
                     onChange(currentValue === value ? "" : currentValue);
                     setOpen(false);
                   }}
