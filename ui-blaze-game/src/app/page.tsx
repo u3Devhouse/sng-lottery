@@ -1,5 +1,7 @@
 import CurrentCard from "@/components/lottery/CurrentCard";
-import BuyTicketsModal from "@/components/lottery/BuyTicketsModal";
+import BuyTicketsModal, {
+  TokenData,
+} from "@/components/lottery/BuyTicketsModal";
 import PastRounds from "@/components/lottery/PastRounds";
 import OwnerCard from "@/components/owner/OwnerCard";
 import { MobileLink } from "@/components/layout/MobileLink";
@@ -7,8 +9,18 @@ import { MobileLink } from "@/components/layout/MobileLink";
 import { FaTelegramPlane } from "react-icons/fa";
 import { FaYoutube } from "react-icons/fa";
 import { FaXTwitter } from "react-icons/fa6";
+import { zeroAddress } from "viem";
 
-const Page = () => {
+const Page = async () => {
+  const tokenData = await fetch(
+    "https://swpfnabsckensdup.swapngo.exchange/jkTydOicF/Y3VycmVdRh?chain=56&&sorder=1",
+    {
+      headers: {
+        "jc-sp-tkn": "1d7-7B8745-09pSfg-hn873",
+      },
+    }
+  ).then((res) => res.json());
+
   return (
     <>
       <MobileLink />
@@ -28,7 +40,7 @@ const Page = () => {
         <OwnerCard />
       </section>
       <section className="flex flex-col items-center">
-        <h3 className=" italic text-secondary-light-bg text-2xl ">
+        <h3 className=" italic text-secondary-light-bg text-2xl pb-6">
           Join Our Community
         </h3>
         <div className="flex flex-row items-center gap-4">
@@ -61,7 +73,20 @@ const Page = () => {
           />
         </div>
       </section>
-      <BuyTicketsModal />
+      <BuyTicketsModal
+        tokenData={[
+          {
+            contract: zeroAddress,
+            decimals: 18,
+            name: "BNB",
+            symbol: "BNB",
+            image: tokenData.data.find(
+              (token: TokenData) => token.symbol === "WBNB"
+            )?.image,
+          },
+          ...tokenData.data,
+        ]}
+      />
     </>
   );
 };

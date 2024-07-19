@@ -10,9 +10,10 @@ import {
   lotteryAbi,
   lotteryContract,
   uniswapPairAbi,
-  blazePair,
-  ethPriceFeed,
   priceFeedAbi,
+  sngToken,
+  sngAbi,
+  testPriceFeed,
 } from "@/data/contracts";
 // Images
 import flyingTokens from "@/../public/assets/flying_tokens.png";
@@ -29,6 +30,15 @@ const Card = () => {
   const setOpenBuyTicketModal = useSetAtom(openBuyTicketModal);
   const [blazeData, setBlazeInfo] = useAtom(blazeInfo);
   const { address } = useAccount();
+  const { data: staticInfo } = useReadContracts({
+    contracts: [
+      {
+        address: sngToken,
+        abi: sngAbi,
+        functionName: "uniswapV2Pair",
+      },
+    ],
+  });
   const { data: currentRound, refetch: currentRoundRefetch } = useReadContract({
     address: lotteryContract,
     abi: lotteryAbi,
@@ -49,16 +59,14 @@ const Card = () => {
         args: [address || zeroAddress, currentRound || 0n],
       },
       {
-        address: blazePair,
+        address: staticInfo?.[0]?.result,
         abi: uniswapPairAbi,
         functionName: "getReserves",
-        chainId: 1,
       },
       {
-        address: ethPriceFeed,
+        address: testPriceFeed,
         abi: priceFeedAbi,
         functionName: "latestRoundData",
-        chainId: 1,
       },
       {
         address: lotteryContract,
@@ -68,6 +76,13 @@ const Card = () => {
       },
     ],
   });
+  const { data: ticketPriceBNB } = useReadContract({
+    address: lotteryContract,
+    abi: lotteryAbi,
+    functionName: "getBNBPricePerTicket",
+    args: [roundInfo?.[0]?.result?.[2] || 0n],
+  });
+  console.log({ currentRound, roundInfo });
 
   const roundIsActive = (roundInfo?.[0]?.result as any)?.[5] || false;
 
@@ -80,8 +95,9 @@ const Card = () => {
       ticketPrice: (roundInfo?.[0]?.result as any)?.[2] || 0n,
       currentRound: Number(currentRound?.toString() || 0),
       ethPrice: (roundInfo?.[3]?.result as any)?.[1] || 0n,
+      ticketPriceBNB: ticketPriceBNB || 0n,
     });
-  }, [setBlazeInfo, roundInfo, currentRound]);
+  }, [setBlazeInfo, roundInfo, currentRound, ticketPriceBNB]);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -122,7 +138,7 @@ const Card = () => {
                   {parseFloat(
                     (
                       blazePrice *
-                      parseFloat(formatEther(roundInfo?.[4].result?.[2] || 0n))
+                      parseFloat(formatEther(roundInfo?.[4]?.result?.[2] || 0n))
                     ).toFixed(2)
                   ).toLocaleString()}
                 </span>
@@ -201,13 +217,13 @@ const Card = () => {
                     <td className="">Match 3</td>
                     <td className="text-right text-sng-red font-bold">
                       {(
-                        Number(roundInfo?.[4].result?.[0] || 0n) / 1e18
+                        Number(roundInfo?.[4]?.result?.[0] || 0n) / 1e18
                       ).toLocaleString()}
                     </td>
                     <td className="text-gray-500 text-right">
                       {parseFloat(
                         (
-                          (Number(roundInfo?.[4].result?.[0] || 0n) *
+                          (Number(roundInfo?.[4]?.result?.[0] || 0n) *
                             blazeData.price) /
                           1e18
                         ).toFixed(2)
@@ -218,13 +234,13 @@ const Card = () => {
                     <td className="">Match 4</td>
                     <td className="text-right text-sng-red font-bold">
                       {(
-                        Number(roundInfo?.[4].result?.[1] || 0n) / 1e18
+                        Number(roundInfo?.[4]?.result?.[1] || 0n) / 1e18
                       ).toLocaleString()}
                     </td>
                     <td className="text-gray-500 text-right">
                       {parseFloat(
                         (
-                          (Number(roundInfo?.[4].result?.[1] || 0n) *
+                          (Number(roundInfo?.[4]?.result?.[1] || 0n) *
                             blazeData.price) /
                           1e18
                         ).toFixed(2)
@@ -235,13 +251,13 @@ const Card = () => {
                     <td className="">Match 5</td>
                     <td className="text-right text-sng-red font-bold">
                       {(
-                        Number(roundInfo?.[4].result?.[2] || 0n) / 1e18
+                        Number(roundInfo?.[4]?.result?.[2] || 0n) / 1e18
                       ).toLocaleString()}
                     </td>
                     <td className="text-gray-500 text-right">
                       {parseFloat(
                         (
-                          (Number(roundInfo?.[4].result?.[2] || 0n) *
+                          (Number(roundInfo?.[4]?.result?.[2] || 0n) *
                             blazeData.price) /
                           1e18
                         ).toFixed(2)

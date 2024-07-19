@@ -3,29 +3,23 @@ import { useAtom, useAtomValue } from "jotai";
 import { blazeInfo, openBuyTicketModal } from "@/data/atoms";
 // Images
 import Image from "next/image";
-import flame from "@/../public/jackpot.png";
+import logo from "@/../public/assets/SNG Jackpot 1.svg";
 import loadingGif from "@/../public/assets/loading_flame.gif";
 //  Contracts
 import { erc20Abi } from "viem";
 import {
   useAccount,
   useBalance,
-  useContractReads,
-  useContractWrite,
-  useToken,
+  useReadContract,
+  useReadContracts,
   useWriteContract,
 } from "wagmi";
 import {
-  ShibToken,
-  USDCToken,
-  USDTToken,
-  blazeToken,
   lotteryAbi,
   lotteryContract,
   uniswapV2PairAbi,
-  usdtAbi,
-  PremeToken,
-  PremeETHPair,
+  uniRouter,
+  uniRouterAbi,
 } from "@/data/contracts";
 import {
   BaseError,
@@ -48,148 +42,41 @@ import useAcceptedTokens, {
   tokenList,
 } from "@/hooks/useAcceptedTokens";
 
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Combobox } from "../Combobox";
+
 type TicketView = [number, number, number, number, number];
-type TokenTypes = "blaze" | "eth" | "shib" | "usdt";
 
-const tokenAddresses = {
-  shib: ShibToken,
-  usdc: USDCToken,
-  usdt: USDTToken,
-  eth: zeroAddress,
-  blaze: blazeToken,
-  preme: PremeToken,
-} as const;
+export type TokenData = {
+  contract: string;
+  name: string;
+  symbol: string;
+  decimal: number;
+  image: string;
+};
 
-const BuyTicketsModal = () => {
+const BuyTicketsModal = ({ tokenData }: { tokenData: Array<TokenData> }) => {
   const { address } = useAccount();
-  const { data: tokenData } = useToken({ address: blazeToken, chainId: 1 });
-  const { data: balanceData } = useBalance({
-    address: address || zeroAddress,
-  });
-  const { data: balances, refetch: balanceRefetch } = useContractReads({
-    contracts: [
-      {
-        address: blazeToken, //blazeToken,
-        abi: erc20Abi,
-        functionName: "balanceOf",
-        args: [address || zeroAddress],
-        chainId: 1,
-      },
-      {
-        address: blazeToken, //blazeToken,
-        abi: erc20Abi,
-        functionName: "allowance",
-        args: [address || zeroAddress, lotteryContract],
-        chainId: 1,
-      },
-      {
-        address: ShibToken, //blazeToken,
-        abi: erc20Abi,
-        functionName: "balanceOf",
-        args: [address || zeroAddress],
-        chainId: 1,
-      },
-      {
-        address: ShibToken, //blazeToken,
-        abi: erc20Abi,
-        functionName: "allowance",
-        args: [address || zeroAddress, lotteryContract],
-        chainId: 1,
-      },
-      {
-        address: lotteryContract,
-        abi: lotteryAbi,
-        functionName: "acceptedTokens",
-        args: [zeroAddress],
-        chainId: 1,
-      },
-      {
-        address: lotteryContract,
-        abi: lotteryAbi,
-        functionName: "acceptedTokens",
-        args: [ShibToken],
-        chainId: 1,
-      },
-      {
-        address: USDCToken,
-        abi: erc20Abi,
-        functionName: "balanceOf",
-        args: [address || zeroAddress],
-        chainId: 1,
-      },
-      {
-        address: USDCToken,
-        abi: erc20Abi,
-        functionName: "allowance",
-        args: [address || zeroAddress, lotteryContract],
-        chainId: 1,
-      },
-      {
-        address: "0x811beEd0119b4AfCE20D2583EB608C6F7AF1954f",
-        abi: uniswapV2PairAbi,
-        functionName: "getReserves",
-        chainId: 1,
-      },
-      {
-        address: lotteryContract,
-        abi: lotteryAbi,
-        functionName: "acceptedTokens",
-        args: [USDCToken],
-        chainId: 1,
-      },
-      {
-        address: USDTToken,
-        abi: erc20Abi,
-        functionName: "balanceOf",
-        args: [address || zeroAddress],
-        chainId: 1,
-      },
-      {
-        address: USDTToken,
-        abi: erc20Abi,
-        functionName: "allowance",
-        args: [address || zeroAddress, lotteryContract],
-        chainId: 1,
-      },
-      {
-        address: lotteryContract,
-        abi: lotteryAbi,
-        functionName: "acceptedTokens",
-        args: [USDTToken],
-        chainId: 1,
-      },
-      {
-        address: PremeToken,
-        abi: erc20Abi,
-        functionName: "balanceOf",
-        args: [address || zeroAddress],
-        chainId: 1,
-      },
-      {
-        address: PremeToken,
-        abi: erc20Abi,
-        functionName: "allowance",
-        args: [address || zeroAddress, lotteryContract],
-        chainId: 1,
-      },
-      {
-        address: lotteryContract,
-        abi: lotteryAbi,
-        functionName: "acceptedTokens",
-        args: [PremeToken],
-        chainId: 1,
-      },
-      {
-        address: PremeETHPair,
-        abi: uniswapV2PairAbi,
-        functionName: "getReserves",
-        chainId: 1,
-      },
-    ],
-  });
-  const { contractData, tokenListContracts, ethBalance } = useAcceptedTokens();
+  const { data: ethBalance } = useBalance({ address });
+
   const roundInfo = useAtomValue(blazeInfo);
-  const [tokenToUse, setTokenToUse] = useState<AcceptedTokens>("blze");
+  const [tokenToUse, setTokenToUse] = useState<`0x${string}`>(zeroAddress);
   const [openModal, setOpenModal] = useAtom(openBuyTicketModal);
   const [ticketAmount, setTicketAmount] = useState(0);
   const [allTickets, setAllTickets] = useImmer<Array<TicketView>>([]);
@@ -215,49 +102,54 @@ const BuyTicketsModal = () => {
           .join("")
     )
   );
+  const selectedData = tokenData.find((token) => token.contract === tokenToUse);
 
-  const selectedTokenData = useMemo(() => {
-    const startIndex =
-      tokenListContracts.tokens[tokenToUse]?.startIndex ?? null;
-    const totalCalls =
-      tokenListContracts.tokens[tokenToUse]?.totalCalls ?? null;
-    if (startIndex === null || !contractData) return [];
-    if (tokenToUse === "eth") {
-      return [
-        { result: ethBalance },
-        { result: maxUint256 },
-        { result: 18n },
-        contractData[startIndex],
-      ];
-    }
-    return contractData.slice(startIndex, startIndex + totalCalls);
-  }, [tokenListContracts, tokenToUse, contractData, ethBalance]);
+  const { data: selectedTokenData } = useReadContracts({
+    contracts: [
+      {
+        address: tokenToUse,
+        abi: erc20Abi,
+        functionName: "balanceOf",
+        args: [address || zeroAddress],
+      },
+      {
+        address: tokenToUse,
+        abi: erc20Abi,
+        functionName: "allowance",
+        args: [address || zeroAddress, lotteryContract],
+      },
+      {
+        address: tokenToUse,
+        abi: erc20Abi,
+        functionName: "decimals",
+      },
+      {
+        address: tokenToUse,
+        abi: erc20Abi,
+        functionName: "symbol",
+      },
+      {
+        address: uniRouter,
+        abi: uniRouterAbi,
+        functionName: "getAmountsOut",
+        args: [1000000000000000000n, [tokenToUse, zeroAddress]],
+      },
+    ],
+    query: {
+      enabled: tokenToUse !== zeroAddress || !selectedData,
+    },
+  });
 
-  const tokenPrice = useMemo(() => {
-    const priceInTokens = (selectedTokenData?.[3]?.result?.[0] || 1n) as bigint;
-    if (["usdt", "usdc", "dai"].includes(tokenToUse))
-      return (
-        (priceInTokens * parseEther("1")) /
-        parseUnits(
-          "1",
-          parseInt((selectedTokenData?.[2]?.result || 1n).toString())
-        )
-      );
-    if (tokenToUse === "eth")
-      return (roundInfo.ethPrice * priceInTokens) / parseUnits("1", 8);
-    const token0 = (selectedTokenData?.[4]?.result?.[0] || 1n) as bigint;
-    const token1 = (selectedTokenData?.[4]?.result?.[1] || 1n) as bigint;
-
-    if (token0 > token1)
-      return (
-        (roundInfo.ethPrice * priceInTokens * token1) / (token0 * 100000000n)
-      );
-    else
-      return (
-        (roundInfo.ethPrice * priceInTokens * token0) / (token1 * 100000000n)
-      );
-  }, [selectedTokenData, tokenToUse, roundInfo]);
-
+  const tokenSymbol = selectedData?.symbol || selectedTokenData?.[3].result;
+  const tokenTicketPrice =
+    tokenToUse === zeroAddress
+      ? roundInfo.ticketPriceBNB
+      : selectedTokenData?.[4].result?.[1];
+  const tokensInWallet =
+    tokenToUse === zeroAddress
+      ? parseInt((ethBalance?.value || 0n)?.toString()) / 1e18
+      : parseInt((selectedTokenData?.[0].result || 0n)?.toString()) /
+        10 ** parseInt((selectedTokenData?.[3].result?.[0] || 0n)?.toString());
   // --------------------
   // Approve Blaze in lottery
   // --------------------
@@ -343,92 +235,79 @@ const BuyTicketsModal = () => {
   // });
 
   return (
-    <dialog className="modal font-outfit" open={openModal}>
-      <div className="modal-box bg-secondary-bg border-2 rounded-3xl border-golden">
-        <div className="flex flex-row justify-between items-center">
-          <h4 className="text-center text-2xl md:text-4xl font-bold">
+    <Dialog
+      open={openModal}
+      onOpenChange={(newVal) => {
+        reset();
+        setOpenModal(newVal);
+      }}
+    >
+      <DialogContent className="bg-secondary-bg border-2 rounded-4xl border-secondary-light-bg card-highlight">
+        <DialogTitle className="flex flex-row justify-between items-center">
+          <Image src={logo} alt="Jackpot logo" height={75} />
+          <div className="text-center text-2xl font-bold italic text-secondary-light-bg">
             {(view == 0 && "Buy Tickets") ||
               (view == 1 && "Ready To Play") ||
               (view == 2 && "Pick Your Numbers") ||
               (view == 3 && "Buying Tickets")}
-          </h4>
-          <Image
-            src={flame}
-            alt="Jackpot logo"
-            height={75}
-            // width={55}
-            // style={{ transform: "scaleX(-1)" }}
-          />
-        </div>
+          </div>
+        </DialogTitle>
         {view == 0 && (
           <>
             <table className="table mt-4">
               <tbody>
-                <tr className="border-slate-500">
+                <tr className="border-red-500/30">
                   <td>ROUND</td>
                   <td className="text-right">{roundInfo.currentRound}</td>
                 </tr>
-                <tr className="border-slate-500">
+                <tr className="border-red-500/30">
                   <td>Buy with</td>
-                  <td className="text-right">
-                    <select
-                      className="select select-sm select-primary"
-                      value={tokenToUse}
-                      onChange={(e) =>
-                        setTokenToUse(e.target.value as AcceptedTokens)
+                  <td className="flex items-end justify-end px-0">
+                    <Combobox
+                      placeholder="Select a Token"
+                      options={
+                        tokenData?.map((token) => ({
+                          value: token.contract,
+                          label: token.symbol,
+                          imageUrl: token.image,
+                        })) || []
                       }
-                    >
-                      <option className="bg-slate-700 text-white/70" disabled>
-                        Tokens Accepted
-                      </option>
-                      {tokenList.map((token) => {
-                        return (
-                          <option
-                            className="bg-slate-700 text-white"
-                            value={token}
-                            key={`option-${token}`}
-                          >
-                            {token.toUpperCase()}
-                          </option>
-                        );
-                      })}
-                    </select>
+                      value={tokenToUse}
+                      onChange={(value) =>
+                        setTokenToUse(value as `0x${string}`)
+                      }
+                    />
                   </td>
                 </tr>
-                <tr className="border-slate-500">
+                <tr className="border-red-500/30">
                   <td>Ticket Price</td>
-                  <td className="text-right text-golden/80">
+                  <td className="text-right text-primary">
                     {parseFloat(
-                      formatUnits(
-                        (selectedTokenData?.[3]?.result?.[0] as bigint) || 0n,
-                        parseInt(
-                          (
-                            (selectedTokenData?.[2]?.result as bigint) || 0n
-                          ).toString()
-                        )
-                      )
-                    ).toLocaleString(undefined, { maximumFractionDigits: 6 })}
-                    &nbsp;$
-                    {tokenToUse.toUpperCase()}
+                      formatUnits(roundInfo.ticketPrice, 18)
+                    ).toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                    &nbsp;$USD
                   </td>
                 </tr>
-                <tr className="border-slate-500">
-                  <td>Wallet</td>
-                  <td className="text-right text-golden/80">
+                <tr className="border-red-500/30">
+                  <td>Price in Token</td>
+                  <td className="text-right text-primary">
                     {parseFloat(
-                      formatUnits(
-                        (selectedTokenData?.[0]?.result as bigint) || 0n,
-                        parseInt(
-                          (
-                            (selectedTokenData?.[2]?.result as bigint) || 0n
-                          ).toString()
-                        )
-                      )
-                    ).toLocaleString(undefined, {
+                      formatUnits(tokenTicketPrice || 0n, 18)
+                    )?.toLocaleString(undefined, {
+                      maximumFractionDigits: 2,
+                    }) || "-"}
+                    &nbsp;$
+                    {tokenSymbol}
+                  </td>
+                </tr>
+                <tr className="border-red-500/30">
+                  <td>Wallet</td>
+                  <td className="text-right text-secondary-light-bg/80">
+                    {tokensInWallet.toLocaleString(undefined, {
                       maximumFractionDigits: 6,
                     })}
                     &nbsp;$
-                    {tokenToUse.toUpperCase()}
+                    {tokenSymbol}
                   </td>
                 </tr>
               </tbody>
@@ -449,31 +328,22 @@ const BuyTicketsModal = () => {
 
             <table className="table mt-4">
               <tbody>
-                <tr className="border-slate-500 text-gray-500">
+                <tr className="border-red-500/30 text-gray-500">
                   <td>Total</td>
-                  <td className="text-right text-golden">
+                  <td className="text-right text-secondary-light-bg">
                     {(
-                      ticketAmount *
-                      parseFloat(
-                        formatUnits(
-                          (selectedTokenData?.[3]?.result?.[0] as bigint) || 0n,
-                          parseInt(
-                            (
-                              (selectedTokenData?.[2]?.result as bigint) || 0n
-                            ).toString()
-                          )
-                        )
-                      )
+                      parseInt(100_00000000000000000n.toString()) * ticketAmount
                     ).toLocaleString(undefined, { maximumFractionDigits: 6 })}
                     &nbsp;$
-                    {tokenToUse.toUpperCase()}
+                    {tokenSymbol}
                   </td>
                 </tr>
-                <tr className="border-slate-500 text-gray-500">
+                <tr className="border-red-500/30 text-gray-500">
                   <td>Total USD</td>
                   <td className="text-right text-primary">
                     {(
-                      ticketAmount * parseFloat(formatUnits(tokenPrice, 18))
+                      ticketAmount *
+                      parseFloat(formatUnits(100_00000000000000000n, 18))
                     ).toLocaleString(undefined, { maximumFractionDigits: 6 })}
                     &nbsp;$USD
                   </td>
@@ -707,12 +577,12 @@ const BuyTicketsModal = () => {
             Back
           </button>
         )}
-      </div>
-      <div
+      </DialogContent>
+      {/* <div
         className="modal-backdrop bg-slate-700/30 backdrop-blur-sm"
         onClick={reset}
-      />
-    </dialog>
+      /> */}
+    </Dialog>
   );
 };
 

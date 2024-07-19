@@ -1,5 +1,5 @@
 import { defaultWagmiConfig } from "@web3modal/wagmi/react/config";
-import { bsc } from "wagmi/chains";
+import { bsc, bscTestnet } from "wagmi/chains";
 
 import { cookieStorage, createStorage } from "wagmi";
 
@@ -15,7 +15,7 @@ const metadata = {
 };
 
 // Create wagmiConfig
-const chains = [bsc] as const;
+const chains = [bsc, bscTestnet] as const;
 export const config = defaultWagmiConfig({
   chains,
   projectId,

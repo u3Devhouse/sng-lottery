@@ -5,7 +5,7 @@ module.exports = {
     themes:[
       {
         'mytheme':{
-          'primary': "#8F763B",
+          'primary': "#E30613",
           'accent': "#F94F59",
           'secondary': "#E0B654" 
         }
@@ -19,7 +19,7 @@ module.exports = {
     extend: {
       colors:{
         'primary-bg': "#27072A",
-        'secondary-bg' : "#0B192D",
+        'secondary-bg' : "#06101D",
         'primary-text': "#D6B159",
         'secondary-light-bg': "#FFE5B6",
         'golden': "#E0B654",

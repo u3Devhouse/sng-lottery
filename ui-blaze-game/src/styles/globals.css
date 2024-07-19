@@ -21,6 +21,9 @@
   .yt-bg {
     background: radial-gradient(circle, #FFFFFF 0%, #FFFFFF 20%,#00000000 20%);
   }
+  .card-highlight {
+    background: radial-gradient(circle at bottom right, #4c72d25e 0%, #00000000 50%);
+  }
 }
 
 @media screen and (max-width: 740px) {
