@@ -150,6 +150,14 @@ const BuyTicketsModal = ({ tokenData }: { tokenData: Array<TokenData> }) => {
       ? parseInt((ethBalance?.value || 0n)?.toString()) / 1e18
       : parseInt((selectedTokenData?.[0].result || 0n)?.toString()) /
         10 ** parseInt((selectedTokenData?.[3].result?.[0] || 0n)?.toString());
+  const tokenDecimals =
+    tokenToUse === zeroAddress
+      ? 18
+      : selectedData
+      ? selectedData.decimal
+      : selectedTokenData?.[2].result || 18;
+  const priceInToken =
+    parseFloat((tokenTicketPrice || 0n)?.toString()) / 10 ** tokenDecimals;
   // --------------------
   // Approve Blaze in lottery
   // --------------------
@@ -291,10 +299,8 @@ const BuyTicketsModal = ({ tokenData }: { tokenData: Array<TokenData> }) => {
                 <tr className="border-red-500/30">
                   <td>Price in Token</td>
                   <td className="text-right text-primary">
-                    {parseFloat(
-                      formatUnits(tokenTicketPrice || 0n, 18)
-                    )?.toLocaleString(undefined, {
-                      maximumFractionDigits: 2,
+                    {priceInToken?.toLocaleString(undefined, {
+                      maximumFractionDigits: 6,
                     }) || "-"}
                     &nbsp;$
                     {tokenSymbol}
@@ -331,9 +337,9 @@ const BuyTicketsModal = ({ tokenData }: { tokenData: Array<TokenData> }) => {
                 <tr className="border-red-500/30 text-gray-500">
                   <td>Total</td>
                   <td className="text-right text-secondary-light-bg">
-                    {(
-                      parseInt(100_00000000000000000n.toString()) * ticketAmount
-                    ).toLocaleString(undefined, { maximumFractionDigits: 6 })}
+                    {(parseFloat((tokenTicketPrice || 0n)?.toString()) *
+                      ticketAmount) /
+                      10 ** tokenDecimals}
                     &nbsp;$
                     {tokenSymbol}
                   </td>
@@ -343,7 +349,7 @@ const BuyTicketsModal = ({ tokenData }: { tokenData: Array<TokenData> }) => {
                   <td className="text-right text-primary">
                     {(
                       ticketAmount *
-                      parseFloat(formatUnits(100_00000000000000000n, 18))
+                      parseFloat(formatUnits(roundInfo.ticketPrice, 18))
                     ).toLocaleString(undefined, { maximumFractionDigits: 6 })}
                     &nbsp;$USD
                   </td>
