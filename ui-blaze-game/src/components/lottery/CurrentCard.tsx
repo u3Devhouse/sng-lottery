@@ -107,6 +107,10 @@ const Card = () => {
   });
 
   const ethPrice = Number((roundInfo?.[3]?.result as any)?.[1] || 0n) / 1e8;
+  console.log({
+    roundInfo,
+    totalPrize: roundInfo?.[0]?.result,
+  });
   const blazePrice =
     (Number((roundInfo?.[2]?.result as any)?.[1] || 0) * ethPrice) /
     Number((roundInfo?.[2]?.result as any)?.[0] || 1);
@@ -137,7 +141,7 @@ const Card = () => {
                   {parseFloat(
                     (
                       blazePrice *
-                      parseFloat(formatEther(roundInfo?.[4]?.result?.[2] || 0n))
+                      parseFloat(formatEther(roundInfo?.[0]?.result?.[0] || 0n))
                     ).toFixed(2)
                   ).toLocaleString()}
                 </span>
@@ -304,8 +308,8 @@ const Card = () => {
         </div>
       </div>
       <dialog className="modal" open={openMyTickets}>
-        <div className="modal-box bg-secondary-bg border-2 border-golden">
-          <h4 className="text-2xl font-outfit text-center font-bold pb-6">
+        <div className="modal-box bg-secondary-bg border-2 border-secondary">
+          <h4 className="text-2xl font-outfit text-center font-bold pb-6 text-primary">
             Bought Tickets
           </h4>
           <div className="flex flex-col items-center justify-center gap-3">
@@ -316,7 +320,7 @@ const Card = () => {
                   key={`bought-ticket-index-${index}`}
                   className="flex flex-row items-center justify-center gap-x-2"
                 >
-                  <div className="text-golden">#{index + 1}</div>
+                  <div className="text-primary">#{index + 1}</div>
                   {evenHex.match(/..?/g)?.map((hex, ix) => (
                     <TicketNumber
                       key={`bought-ticket-${index}-${ix}`}

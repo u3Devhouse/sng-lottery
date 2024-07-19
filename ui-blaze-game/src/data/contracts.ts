@@ -1,6 +1,6 @@
 import { getAddress } from "viem";
 
-export const ethPriceFeed = "0x5f4ec3df9cbd43714fe2740f5e3616155c5b8419";
+export const ethPriceFeed = "0x0567F2323251f0Aab15c8dFb1967E4e8A7D42aeE";
 export const uniRouter = "0x10ED43C718714eb63d5aA57B78B54704E256024E";
 export const lotteryContract = "0x3EEA3Ead4038aeD9aF2d24cC39B865e2493fe2b3";
 export const sngToken = "0xB263feAdEA2d754Dc72276A62e3CcCf934669522";

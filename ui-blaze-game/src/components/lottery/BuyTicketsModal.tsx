@@ -4,7 +4,7 @@ import { blazeInfo, openBuyTicketModal } from "@/data/atoms";
 // Images
 import Image from "next/image";
 import logo from "@/../public/assets/SNG Jackpot 1.svg";
-import loadingGif from "@/../public/assets/loading_flame.gif";
+import loadingGif from "@/../public/assets/loading_j.gif";
 //  Contracts
 import { erc20Abi, getAddress } from "viem";
 import {
@@ -24,11 +24,9 @@ import {
 } from "@/data/contracts";
 import {
   BaseError,
-  formatEther,
   formatUnits,
   maxUint256,
   parseEther,
-  parseUnits,
   toHex,
   zeroAddress,
 } from "viem";
@@ -523,6 +521,7 @@ const BuyTicketsModal = ({ tokenData }: { tokenData: Array<TokenData> }) => {
               </div>
               <div className="grid  grid-cols-6 gap-y-2 max-h-[320px] overflow-y-auto">
                 {Array.from({ length: 64 }).map((_, i) => {
+                  const currentNumberIsSelected = selectedNumbers.includes(i);
                   return (
                     <div
                       key={`ticket-id-to-buy-${selectedTicket}-${i}`}
@@ -531,9 +530,20 @@ const BuyTicketsModal = ({ tokenData }: { tokenData: Array<TokenData> }) => {
                       <button
                         className={classNames(
                           "hover:bg-golden/70 p-1 rounded-full",
-                          selectedNumbers.includes(i) && "bg-red-500/70"
+                          currentNumberIsSelected && "bg-red-500/70"
                         )}
                         onClick={() => {
+                          // if number is selected, remove it
+                          if (currentNumberIsSelected) {
+                            setAllTickets((draft) => {
+                              draft[selectedTicket][selectedIndex] = 0;
+                            });
+                            setAllTickets((draft) => {
+                              draft[selectedTicket][selectedIndex] = 0;
+                            });
+                            return;
+                          }
+
                           setAllTickets((draft) => {
                             draft[selectedTicket][selectedIndex] = i;
                           });
@@ -546,7 +556,7 @@ const BuyTicketsModal = ({ tokenData }: { tokenData: Array<TokenData> }) => {
                         <TicketNumber
                           number={i}
                           variation={
-                            selectedNumbers.includes(i) ? "selected" : "default"
+                            currentNumberIsSelected ? "selected" : "default"
                           }
                         />
                       </button>
