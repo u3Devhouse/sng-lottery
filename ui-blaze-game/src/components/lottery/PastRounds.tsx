@@ -1,4 +1,5 @@
 "use client";
+import Image from "next/image";
 import { blazeInfo } from "@/data/atoms";
 import { lotteryAbi, lotteryContract } from "@/data/contracts";
 import { toEvenHexNoPrefix } from "@/utils/stringify";
@@ -20,6 +21,7 @@ import {
 } from "wagmi";
 import TicketNumber from "./TicketNumber";
 import { GrView } from "react-icons/gr";
+import redStar from "@/../public/assets/RedStar.svg";
 
 // const address = "";
 
@@ -122,13 +124,13 @@ const PastRounds = () => {
     );
   return (
     <>
-      <div className="card bg-secondary-bg rounded-3xl overflow-hidden border-golden-dark border-4 md:max-w-md w-[300px] md:min-w-[450px] font-outfit">
-        <div className="bg-golden w-full px-4 py-2 flex flex-row justify-between items-center text-sm text-black">
-          <div>#{selectedRound}</div>
+      <div className="card bg-secondary-bg rounded-3xl overflow-hidden border-secondary border-4 md:max-w-md w-[300px] md:min-w-[450px] font-outfit">
+        <div className="bg-secondary w-full px-4 py-2 flex flex-row justify-between items-center text-sm text-black">
+          <div> #{selectedRound}</div>
           <div className="flex flex-row items-center">
             <button
               className={classNames(
-                "btn btn-circle btn-sm bg-golden text-black border-0 hover:bg-golden-dark",
+                "btn btn-circle btn-sm bg-secondary-bg text-white border-0 hover:bg-secondary hover:text-black",
                 selectedRound < 2 && "btn-disabled"
               )}
               onClick={() => {
@@ -139,7 +141,7 @@ const PastRounds = () => {
             </button>
             <button
               className={classNames(
-                "btn btn-circle btn-sm bg-golden text-black border-0 hover:bg-golden-dark",
+                "btn btn-circle btn-sm bg-secondary-bg text-white border-0 hover:bg-secondary hover:text-black",
                 selectedRound < 2 && "btn-disabled"
               )}
               onClick={() => {
@@ -150,7 +152,7 @@ const PastRounds = () => {
             </button>
             <button
               className={classNames(
-                "btn btn-circle btn-sm bg-golden text-black border-0 hover:bg-golden-dark",
+                "btn btn-circle btn-sm bg-secondary-bg text-white border-0 hover:bg-secondary hover:text-black",
                 selectedRound >= maxPrev && "btn-disabled"
               )}
               onClick={() => {
@@ -162,7 +164,7 @@ const PastRounds = () => {
             </button>
             <button
               className={classNames(
-                "btn btn-circle btn-sm bg-golden text-black border-0 hover:bg-golden-dark",
+                "btn btn-circle btn-sm bg-secondary-bg text-white border-0 hover:bg-secondary hover:text-black",
                 selectedRound >= maxPrev && "btn-disabled"
               )}
               onClick={() => {
@@ -177,37 +179,13 @@ const PastRounds = () => {
         <div className="card-body border-b-2 border-slate-500">
           <h4 className="text-center whitespace-pre-wrap">
             Round Pot:{"\n"}
-            <span className="text-golden font-bold text-xl">
-              {parseFloat(formatEther(data?.[0] || 0n)).toLocaleString()} BLZE
+            <span className="text-primary font-bold text-xl">
+              {parseFloat(formatEther(data?.[0] || 0n)).toLocaleString()} SNG
             </span>
           </h4>
           <div className="flex flex-row items-center justify-center gap-x-4">
             <div>
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="50"
-                height="16"
-                viewBox="0 0 50 16"
-                fill="none"
-              >
-                <line
-                  x1="50"
-                  y1="15"
-                  x2="19.1489"
-                  y2="15"
-                  stroke="#E0B654"
-                  strokeWidth="2"
-                />
-                <line
-                  x1="50"
-                  y1="1"
-                  x2="19.1489"
-                  y2="1"
-                  stroke="#E0B654"
-                  strokeWidth="2"
-                />
-                <line x1="50" y1="8" y2="8" stroke="#E0B654" strokeWidth="2" />
-              </svg>
+              <Image src={redStar} alt="RedStar" />
             </div>
             <div className="flex flex-col justify-center">
               <div className="text-center">
@@ -230,29 +208,7 @@ const PastRounds = () => {
               </div>
             </div>
             <div>
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="50"
-                height="16"
-                viewBox="0 0 50 16"
-                fill="none"
-              >
-                <line
-                  y1="1"
-                  x2="30.8511"
-                  y2="1"
-                  stroke="#E0B654"
-                  strokeWidth="2"
-                />
-                <line
-                  y1="15"
-                  x2="30.8511"
-                  y2="15"
-                  stroke="#E0B654"
-                  strokeWidth="2"
-                />
-                <line y1="8" x2="50" y2="8" stroke="#E0B654" strokeWidth="2" />
-              </svg>
+              <Image src={redStar} alt="RedStar" />
             </div>
           </div>
           {userWinners.length > 0 && (
@@ -329,7 +285,7 @@ const PastRounds = () => {
                   <tr>
                     <th>Match</th>
                     <th className="text-center">Matches</th>
-                    <th className="text-right">BLZE</th>
+                    <th className="text-right">SNG</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -365,7 +321,7 @@ const PastRounds = () => {
                 </tr> */}
                   <tr>
                     <td className="text-sm">Match 3</td>
-                    <td className="text-center text-golden font-bold">
+                    <td className="text-center text-primary font-bold">
                       {Number(
                         matchesInfo?.[0]?.result?.[2] || 0n
                       ).toLocaleString()}
@@ -378,7 +334,7 @@ const PastRounds = () => {
                   </tr>
                   <tr>
                     <td className="text-sm">Match 4</td>
-                    <td className="text-center text-golden font-bold">
+                    <td className="text-center text-primary font-bold">
                       {Number(
                         matchesInfo?.[0]?.result?.[3] || 0n
                       ).toLocaleString()}
@@ -391,7 +347,7 @@ const PastRounds = () => {
                   </tr>
                   <tr>
                     <td className="text-sm">Match 5</td>
-                    <td className="text-center text-golden font-bold">
+                    <td className="text-center text-primary font-bold">
                       {Number(
                         matchesInfo?.[0]?.result?.[4] || 0n
                       ).toLocaleString()}
