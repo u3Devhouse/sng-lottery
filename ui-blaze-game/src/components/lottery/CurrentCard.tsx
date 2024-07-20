@@ -5,7 +5,7 @@ import format from "date-fns/format";
 import { useAtom, useSetAtom } from "jotai";
 // Contracts
 import { useAccount, useReadContract, useReadContracts } from "wagmi";
-import { formatEther, toHex, zeroAddress } from "viem";
+import { formatEther, zeroAddress } from "viem";
 import {
   lotteryAbi,
   lotteryContract,
@@ -15,8 +15,6 @@ import {
   sngAbi,
   ethPriceFeed,
 } from "@/data/contracts";
-// Images
-import flyingTokens from "@/../public/assets/flying_tokens.png";
 //  Data
 import { blazeInfo, openBuyTicketModal } from "@/data/atoms";
 import TicketNumber from "./TicketNumber";
