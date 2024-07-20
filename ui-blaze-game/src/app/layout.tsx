@@ -18,7 +18,7 @@ const outfit = Outfit({
 export const metadata = {
   title: "SNG Jackpot",
   description: "Pick your numbers and win big!",
-  image: "/blaze_logo.png",
+  image: "/icon.png",
 };
 
 export default function RootLayout({

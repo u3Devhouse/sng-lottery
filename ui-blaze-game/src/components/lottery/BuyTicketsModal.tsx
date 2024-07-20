@@ -381,7 +381,7 @@ const BuyTicketsModal = ({ tokenData }: { tokenData: Array<TokenData> }) => {
                           setView(2);
                         }}
                       >
-                        Edit ticket
+                        Choose Numbers
                         <BiSolidEdit />
                       </button>
                     </div>
@@ -495,7 +495,7 @@ const BuyTicketsModal = ({ tokenData }: { tokenData: Array<TokenData> }) => {
         )}
         {view == 3 && (
           <div className="flex flex-col items-center justify-center">
-            <Image src={loadingGif} alt="Loading..." />
+            <Image src={loadingGif} alt="Loading..." width={200} height={200} />
             <div>
               <a
                 className="text-golden underline"
