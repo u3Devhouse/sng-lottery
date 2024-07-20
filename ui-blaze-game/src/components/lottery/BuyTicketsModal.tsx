@@ -10,14 +10,12 @@ import { erc20Abi, getAddress } from "viem";
 import {
   useAccount,
   useBalance,
-  useReadContract,
   useReadContracts,
   useWriteContract,
 } from "wagmi";
 import {
   lotteryAbi,
   lotteryContract,
-  uniswapV2PairAbi,
   uniRouter,
   uniRouterAbi,
   wbnb,
@@ -30,20 +28,15 @@ import {
   toHex,
   zeroAddress,
 } from "viem";
-import { useEffect, useMemo, useState } from "react";
+import { useState } from "react";
 import { useImmer } from "use-immer";
 import { BiSolidEdit } from "react-icons/bi";
 import classNames from "classnames";
 import TicketNumber from "./TicketNumber";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Combobox } from "../Combobox";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { Combobox } from "@/components/Combobox";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 type TicketView = [number, number, number, number, number];
 
@@ -241,24 +234,29 @@ const BuyTicketsModal = ({ tokenData }: { tokenData: Array<TokenData> }) => {
                     {tokenSymbol}
                   </td>
                 </tr>
-              </tbody>
-            </table>
+                <tr className="border-red-500/30">
+                  <td colSpan={2}>
+                    <div className="flex flex-col items-center w-full">
+                      <div className="grid w-[200px] items-center gap-1.5">
+                        <Label htmlFor="ticketAmount">Number of Tickets</Label>
+                        <Input
+                          type="number"
+                          id="ticketAmount"
+                          placeholder="Tickets to buy"
+                          onFocus={(e) => e.target.select()}
+                          value={ticketAmount}
+                          onChange={(e) => {
+                            // only integers
+                            const num = parseInt(e.target.value);
+                            if (isNaN(num)) setTicketAmount(0);
+                            else setTicketAmount(num);
+                          }}
+                        />
+                      </div>
+                    </div>
+                  </td>
+                </tr>
 
-            <input
-              type="number"
-              className="input input-bordered input-primary w-full"
-              onFocus={(e) => e.target.select()}
-              value={ticketAmount}
-              onChange={(e) => {
-                // only integers
-                const num = parseInt(e.target.value);
-                if (isNaN(num)) setTicketAmount(0);
-                else setTicketAmount(num);
-              }}
-            />
-
-            <table className="table mt-4">
-              <tbody>
                 <tr className="border-red-500/30 text-gray-500">
                   <td>Total</td>
                   <td className="text-right text-secondary-light-bg">
@@ -369,6 +367,38 @@ const BuyTicketsModal = ({ tokenData }: { tokenData: Array<TokenData> }) => {
         )}
         {view == 1 && (
           <>
+            <div className="flex flex-col gap-y-4 py-4 max-h-[60vh] overflow-auto">
+              {allTickets.map((ticket, i) => {
+                return (
+                  <div key={`ticket-id-to-buy-${i}`}>
+                    <div className="text-sm text-primary pb-4 flex flex-row justify-between items-center">
+                      <div>Ticket #{i + 1}</div>
+                      <button
+                        className="btn rounded-full btn-secondary bg-transparent text-primary btn-sm text-xs font-light"
+                        onClick={() => {
+                          setSelectedTicket(i);
+                          setSelectedNumbers(ticket);
+                          setView(2);
+                        }}
+                      >
+                        Edit ticket
+                        <BiSolidEdit />
+                      </button>
+                    </div>
+                    <div className="flex flex-row items-center justify-center gap-x-4">
+                      {ticket.map((num, j) => {
+                        return (
+                          <TicketNumber
+                            number={num}
+                            key={`ticket-id-to-buy-${i}-${j}`}
+                          />
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
             <div className="flex flex-row items-center justify-center">
               <button
                 className="btn btn-primary rounded-full"
@@ -391,37 +421,6 @@ const BuyTicketsModal = ({ tokenData }: { tokenData: Array<TokenData> }) => {
               >
                 Buy Now
               </button>
-            </div>
-            <div className="flex flex-col gap-y-4 py-4 max-h-[60vh] overflow-auto">
-              {allTickets.map((ticket, i) => {
-                return (
-                  <div key={`ticket-id-to-buy-${i}`}>
-                    <div className="text-sm text-primary pb-2 flex flex-row justify-between items-center">
-                      <div>Ticket #{i + 1}</div>
-                      <button
-                        className="btn btn-circle btn-secondary bg-transparent text-primary btn-sm"
-                        onClick={() => {
-                          setSelectedTicket(i);
-                          setSelectedNumbers(ticket);
-                          setView(2);
-                        }}
-                      >
-                        <BiSolidEdit />
-                      </button>
-                    </div>
-                    <div className="flex flex-row items-center justify-center gap-x-4">
-                      {ticket.map((num, j) => {
-                        return (
-                          <TicketNumber
-                            number={num}
-                            key={`ticket-id-to-buy-${i}-${j}`}
-                          />
-                        );
-                      })}
-                    </div>
-                  </div>
-                );
-              })}
             </div>
           </>
         )}
@@ -523,7 +522,7 @@ const BuyTicketsModal = ({ tokenData }: { tokenData: Array<TokenData> }) => {
         )}
         {(view == 1 || view == 2 || (view == 3 && isError)) && (
           <button
-            className="btn btn-outline btn-secondary w-full mt-4"
+            className="btn btn-ghost btn-secondary rounded-full mt-4"
             onClick={() =>
               setView((v) => {
                 if (v == 3) return 1;
@@ -535,10 +534,6 @@ const BuyTicketsModal = ({ tokenData }: { tokenData: Array<TokenData> }) => {
           </button>
         )}
       </DialogContent>
-      {/* <div
-        className="modal-backdrop bg-slate-700/30 backdrop-blur-sm"
-        onClick={reset}
-      /> */}
     </Dialog>
   );
 };
