@@ -61,7 +61,7 @@ export function Combobox(props: ComboboxType) {
           variant="outline"
           role="combobox"
           aria-expanded={open}
-          className="w-[200px] justify-between"
+          className="w-[200px] justify-between bg-secondary-bg text-white"
         >
           {value ? (
             <>
