@@ -1,26 +1,38 @@
 "use client";
 
 import React, { ReactNode } from "react";
-import { config, projectId } from "@/utils/web3/config";
-
-import { createWeb3Modal } from "@web3modal/wagmi/react";
+import { projectId } from "@/utils/web3/config";
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
-import { State, WagmiProvider } from "wagmi";
+import { State, WagmiProvider, createConfig, http } from "wagmi";
+import { bsc } from "viem/chains";
+import { ConnectKitProvider, getDefaultConfig } from "connectkit";
+
+const config = createConfig(
+  getDefaultConfig({
+    // Your dApps chains
+    chains: [bsc],
+    transports: {
+      [bsc.id]: http(bsc.rpcUrls.default.http[0]),
+    },
+    // Required API Keys
+    walletConnectProjectId: projectId,
+
+    // Required App Info
+    appName: "SNG Jackpot",
+
+    // Optional App Info
+    appDescription: "SNG Jackpot",
+    appUrl: "https://jackpot.swapngo.io", // your app's url
+    appIcon: "https://jackpot.swapngo.io/icon.png", // your app's icon, no bigger than 1024x1024px (max. 1MB)
+  })
+);
 
 // Setup queryClient
 const queryClient = new QueryClient();
 
 if (!projectId) throw new Error("Project ID is not defined");
-
-// Create modal
-createWeb3Modal({
-  wagmiConfig: config,
-  projectId,
-  enableAnalytics: true, // Optional - defaults to your Cloud configuration
-  enableOnramp: true, // Optional - false as default
-});
 
 export default function Web3ModalProvider({
   children,
@@ -31,7 +43,9 @@ export default function Web3ModalProvider({
 }) {
   return (
     <WagmiProvider config={config} initialState={initialState}>
-      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+      <QueryClientProvider client={queryClient}>
+        <ConnectKitProvider>{children}</ConnectKitProvider>
+      </QueryClientProvider>
     </WagmiProvider>
   );
 }
