@@ -1,5 +1,5 @@
 import { defaultWagmiConfig } from "@web3modal/wagmi/react/config";
-import { bsc, bscTestnet } from "wagmi/chains";
+import { bsc } from "wagmi/chains";
 
 import { cookieStorage, createStorage } from "wagmi";
 
@@ -10,12 +10,12 @@ export const projectId = "9ba2cca8fb0951019c2b5136cad0fad6";
 const metadata = {
   name: "SNG Lottery",
   description: "Lottery game for SwapNGo",
-  url: "https://jackpot.sngtoken.io", // origin must match your domain & subdomain
-  icons: ["https://avatars.githubusercontent.com/u/37784886"],
+  url: "https://jackpot.swapngo.io", // origin must match your domain & subdomain
+  icons: ["https://jackpot.swapngo.io/icon.png"],
 };
 
 // Create wagmiConfig
-const chains = [bsc, bscTestnet] as const;
+const chains = [bsc] as const;
 export const config = defaultWagmiConfig({
   chains,
   projectId,
